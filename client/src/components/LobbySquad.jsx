@@ -4,6 +4,7 @@ import { useContext, useState } from "react";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import GameContext from "../providers/GameProvider";
 import { useNavigate } from "react-router-dom";
+import PlayerCard from "./PlayerCard";
 
 const containerStyling = {
   display: "flex",
@@ -31,11 +32,16 @@ function LobbySquad() {
     navigate("/");
   };
 
+  console.log(room);
+
   return (
     <Box sx={containerStyling}>
       <Box className="lobby-members">
-        <Typography level="h2" color="primary" mb={4}>
+        <Typography level="h2" color="primary" mb={0.25}>
           Lobby members
+        </Typography>
+        <Typography sx={{ mb: 4 }} level="body-sm">
+          Game ID: {room?.room_id}
         </Typography>
         <Box
           sx={{
@@ -46,7 +52,11 @@ function LobbySquad() {
             gap: 2,
             pr: 1,
           }}
-        ></Box>
+        >
+          {room?.players.map((player) => (
+            <PlayerCard user={player} onRemove={() => console.log("remove")} />
+          ))}
+        </Box>
       </Box>
 
       <Box

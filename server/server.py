@@ -27,13 +27,13 @@ def generate_random_string(length: int):
 api_token_session_storage = {}
 game_rooms = {}
 
-def create_room(host_id):
+def create_room(host_profile):
     room_id = str(uuid.uuid4())[:8]
     game_rooms[room_id] = {
         "room_id": room_id,
-        "host": host_id,
-        "playlist_id": None,    # no playlist yet
-        "players": [host_id],
+        "host": host_profile["id"],
+        "playlist_id": None,
+        "players": [host_profile],  # full profile dicts
         "status": "waiting",
     }
     return game_rooms[room_id]
@@ -179,7 +179,13 @@ def create_game():
         print(f"User {host_id} already has game {existing_room['room_id']}")
         return jsonify(existing_room), 403
 
-    room = create_room(host_id)
+    host_profile = {
+        "id": host_info.get("id"),
+        "display_name": host_info.get("display_name"),
+        "email": host_info.get("email"),
+    }
+
+    room = create_room(host_profile)
     print(f"Created game room {room['room_id']} by {host_id}")
     return jsonify(room), 201
 
@@ -212,6 +218,44 @@ def delete_game(room_id):
     print(f"Room {room_id} deleted by host {user_id}")
 
     return jsonify({"status": "deleted", "room_id": room_id}), 200
+
+@app.get("/api/game/<room_id>")
+def get_game(room_id):
+    spotify_api_token = request.cookies.get("spotify_api_token")
+    if not spotify_api_token:
+        return jsonify({"error": "unauthorized"}), 401
+
+    # Validate Spotify token to be sure cookie isn't stale
+    me_resp = requests.get(
+        "https://api.spotify.com/v1/me",
+        headers={"Authorization": f"Bearer {spotify_api_token}"},
+    )
+    if me_resp.status_code != 200:
+        return jsonify({"error": "cannot verify user"}), 401
+
+    user = me_resp.json()
+    user_id = user.get("id")
+
+    # --- Lookup room ---
+    room = game_rooms.get(room_id)
+    if not room:
+        return jsonify({"error": "room not found"}), 404
+
+    # --- Verify that user is either host or participant ---
+    is_member = any(p["id"] == user_id for p in room["players"])
+    if not is_member and user_id != room["host"]:
+        return jsonify({"error": "forbidden: not part of this room"}), 403
+
+    # Return a direct copy (do not mutate global store from jsonify)
+    room_info = {
+        "room_id": room["room_id"],
+        "host": room["host"],
+        "playlist_id": room.get("playlist_id"),
+        "status": room.get("status"),
+        "players": room["players"],
+    }
+
+    return jsonify(room_info), 200
 
 # Set playlist
 @app.post("/api/game/set-playlist")

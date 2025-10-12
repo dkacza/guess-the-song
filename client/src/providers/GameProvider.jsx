@@ -6,6 +6,7 @@ const GameContext = createContext({
   error: null,
   activeRoomId: null,
   createGame: () => Promise.resolve(),
+  fetchGame: (roomId) => Promise.resolve(),
   deleteGame: (roomId) => Promise.resolve(),
 });
 
@@ -41,6 +42,15 @@ export function GameProvider({ children }) {
     }
   };
 
+  async function fetchGame(roomId) {
+    const res = await fetch(`https://localhost:5000/api/game/${roomId}`, {
+      credentials: "include",
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load room");
+    return data;
+  }
+
   const deleteGame = async (roomId) => {
     const res = await fetch(`https://localhost:5000/api/game/${roomId}`, {
       method: "DELETE",
@@ -58,7 +68,12 @@ export function GameProvider({ children }) {
   useEffect(() => {
     const storedRoom = localStorage.getItem("room_id");
     if (storedRoom) {
-      setActiveRoomId(storedRoom);
+      const getGameDetails = async () => {
+        const data = await fetchGame(storedRoom);
+        setActiveRoomId(data.room_id);
+        setRoom(data);
+      };
+      getGameDetails();
     }
   }, []);
 
@@ -70,6 +85,7 @@ export function GameProvider({ children }) {
         error,
         activeRoomId,
         createGame,
+        fetchGame,
         deleteGame,
       }}
     >
