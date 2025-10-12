@@ -30,12 +30,6 @@ function PlaylistSelect() {
   const [url, setUrl] = useState("");
   const [token, setToken] = useState(null);
 
-  useEffect(() => {
-    fetch("https://localhost:5000/api/token", { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => setToken(data?.access_token ?? null));
-  }, []);
-
   const getPlaylistInfo = async (url) => {
     const playlistId = extractPlaylistId(url);
     if (!playlistId) {

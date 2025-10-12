@@ -32,7 +32,14 @@ function LobbyView() {
         {loading ? (
           <PulseLoader color="#1976d2" size={12} margin={6} />
         ) : user ? (
-          <Box sx={{ display: "flex", width: "100vw" }}>
+          <Box
+            sx={{
+              display: "flex",
+              width: "100vw",
+              justifyContent: "space-between",
+              pr: 10,
+            }}
+          >
             <PlaylistSelect />
             <LobbySquad />
           </Box>
