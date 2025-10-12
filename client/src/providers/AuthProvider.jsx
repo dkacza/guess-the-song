@@ -10,34 +10,21 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    (async () => {
-      const sessionIdFromUrl = retrieveSessionIdfromURL();
-      if (sessionIdFromUrl) {
-        await getSession(sessionIdFromUrl);
-        window.history.replaceState(
-          {},
-          document.title,
-          window.location.pathname
-        );
-      }
-      await refreshUser();
-    })();
-  }, []);
-
+  // After the spotify callback is served, the redirection to the FE is made.
+  // The sid parameter passed within the URL query can be used to retrieve the specific Spotify Web API token from the BE
   const retrieveSessionIdfromURL = function () {
     const params = new URLSearchParams(window.location.search);
     return params.get("sid");
   };
 
-  const getSession = async (sessionIdFromUrl) => {
-    const res = await fetch("https://localhost:5000/api/set-session", {
+  const getSpotifyToken = async (sid) => {
+    const res = await fetch("https://localhost:5000/api/set-api-token", {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ session_id: sessionIdFromUrl }),
+      body: JSON.stringify({ session_id: sid }),
     });
-    if (!res.ok) throw new Error("failed to set session");
+    if (!res.ok) throw new Error("Failed to set Spotify Web API token");
   };
 
   const refreshUser = async () => {
@@ -56,6 +43,21 @@ export function AuthProvider({ children }) {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    (async () => {
+      const sessionIdFromUrl = retrieveSessionIdfromURL();
+      if (sessionIdFromUrl) {
+        await getSpotifyToken(sessionIdFromUrl);
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname
+        );
+      }
+      await refreshUser();
+    })();
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, loading, refreshUser }}>

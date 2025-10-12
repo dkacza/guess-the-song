@@ -1,5 +1,7 @@
 from dotenv import load_dotenv
 from flask import Flask, redirect, request, jsonify, make_response
+from flask_cors import CORS
+
 
 import string
 import random
@@ -14,7 +16,7 @@ load_dotenv()
 
 SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
-SPOTIFY_REDIRECT_URL = os.getenv("SPOTIFY_REDIRECT_URI")
+SPOTIFY_REDIRECT_URL = os.getenv("SPOTIFY_REDIRECT_URL")
 SERVER_PORT = os.getenv("SERVER_PORT")
 FRONTEND_URL = os.getenv("FRONTEND_URL")
 
@@ -26,6 +28,12 @@ api_token_session_storage = {}
 
 
 app = Flask(__name__)
+
+CORS(
+    app,
+    supports_credentials=True,
+    origins=[FRONTEND_URL],
+)
 
 
 # Spotify login request
@@ -91,12 +99,14 @@ def auth_callback():
  
 
 # Get the Spotify API token based on the temporary session
-@app.get("/api/get-spotify-token")
+@app.post("/api/set-api-token")
 def get_spotify_token():
     data = request.get_json()
     sid = data.get("session_id")
+    print(sid)
+    print(sid in api_token_session_storage)
 
-    if not sid or sid not in api_token_session_storage:
+    if not sid:
         return {"error": "invalid session"}, 400
     
     # Token is retrieved from the session storage and the entry is deleted afterwards
@@ -113,6 +123,22 @@ def get_spotify_token():
         samesite="None",
     )
     return response
+
+
+# Proxy endpoint for getting user data
+@app.route("/api/me")
+def me():
+    spotify_api_token = request.cookies.get("spotify_api_token")
+
+    if not spotify_api_token:
+        return jsonify({"error": "unauthorized"}), 401
+
+    r = requests.get(
+        "https://api.spotify.com/v1/me",
+        headers={"Authorization": f"Bearer {spotify_api_token}"},
+    )
+    return jsonify(r.json()), r.status_code
+
 
 if __name__ == "__main__":
     app.run(ssl_context=("cert.pem", "key.pem"), host="127.0.0.1", port=5000, debug=True)
