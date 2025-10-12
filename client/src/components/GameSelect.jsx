@@ -1,7 +1,9 @@
-import { Box, Button, Card, Input, Typography } from "@mui/joy";
+import { Box, Button, Card, Input, Link, Typography } from "@mui/joy";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import MeetingRoomIcon from "@mui/icons-material/MeetingRoom";
 import { useNavigate } from "react-router-dom";
+import { useContext } from "react";
+import GameContext, { GameProvider } from "../providers/GameProvider";
 
 const containerStyling = {};
 const cardStyling = {
@@ -15,6 +17,9 @@ const cardStyling = {
 
 function GameSelect() {
   const navigate = useNavigate();
+  const { createGame, activeRoomId } = useContext(GameContext);
+
+  console.log(activeRoomId);
 
   return (
     <Box sx={containerStyling}>
@@ -33,8 +38,9 @@ function GameSelect() {
           </Typography>
           <Button
             color="success"
-            onClick={() => {
-              navigate("/lobby");
+            onClick={async () => {
+              const game = await createGame();
+              navigate("/room/" + game?.room_id);
             }}
           >
             New Game
@@ -62,6 +68,22 @@ function GameSelect() {
           </Box>
         </Card>
       </Box>
+      {activeRoomId ? (
+        <Box sx={{ mt: 4 }}>
+          <Typography>
+            There's a room that you have already been part of recently.
+          </Typography>
+          <Link
+            onClick={() => {
+              navigate("/room/" + activeRoomId);
+            }}
+          >
+            Click to join
+          </Link>
+        </Box>
+      ) : (
+        <></>
+      )}
     </Box>
   );
 }

@@ -1,17 +1,9 @@
 import { DeleteOutline, StartOutlined } from "@mui/icons-material";
-import {
-  Avatar,
-  Box,
-  Button,
-  Card,
-  IconButton,
-  Snackbar,
-  Typography,
-} from "@mui/joy";
-import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
-import PlayerCard from "./PlayerCard";
-import { useState } from "react";
+import { Box, Button, Snackbar, Typography } from "@mui/joy";
+import { useContext, useState } from "react";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import GameContext from "../providers/GameProvider";
+import { useNavigate } from "react-router-dom";
 
 const containerStyling = {
   display: "flex",
@@ -19,14 +11,11 @@ const containerStyling = {
   p: 4,
 };
 
-const mockUser = {
-  name: "Dawid",
-  email: "sample@email.com",
-};
-
 function LobbySquad() {
   const [copied, setCopied] = useState(false);
   const gameCode = "ABCD1234";
+  const { room, deleteGame } = useContext(GameContext);
+  const navigate = useNavigate();
 
   const handleCopyCode = async () => {
     try {
@@ -37,6 +26,11 @@ function LobbySquad() {
       console.error("Failed to copy:", err);
     }
   };
+  const handleLobbyResolve = async () => {
+    deleteGame(room.room_id);
+    navigate("/");
+  };
+
   return (
     <Box sx={containerStyling}>
       <Box className="lobby-members">
@@ -52,20 +46,7 @@ function LobbySquad() {
             gap: 2,
             pr: 1,
           }}
-        >
-          <PlayerCard
-            user={mockUser}
-            onRemove={() => console.log("user remove")}
-          />
-          <PlayerCard
-            user={mockUser}
-            onRemove={() => console.log("user remove")}
-          />
-          <PlayerCard
-            user={mockUser}
-            onRemove={() => console.log("user remove")}
-          />
-        </Box>
+        ></Box>
       </Box>
 
       <Box
@@ -89,7 +70,11 @@ function LobbySquad() {
         >
           Copy Access Code
         </Button>
-        <Button color="danger" startDecorator={<DeleteOutline />}>
+        <Button
+          color="danger"
+          startDecorator={<DeleteOutline />}
+          onClick={handleLobbyResolve}
+        >
           Resolve lobby
         </Button>
         <Button color="success" startDecorator={<StartOutlined />}>

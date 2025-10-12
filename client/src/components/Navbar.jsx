@@ -17,7 +17,6 @@ const containerStyling = {
 function Navbar() {
   const { user } = useContext(AuthContext);
 
-  console.log(user);
   return (
     <Sheet variant="outlined" sx={containerStyling}>
       <Typography level="h2" color="success" ml={2}>

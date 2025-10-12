@@ -8,7 +8,7 @@ function Root() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<HomeView />} />
-        <Route path="/lobby" element={<LobbyView />} />
+        <Route path="/room/:id" element={<LobbyView />} />
       </Routes>
     </BrowserRouter>
   );

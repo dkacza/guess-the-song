@@ -25,6 +25,18 @@ def generate_random_string(length: int):
     return "".join(random.choice(possible) for _ in range(length))
 
 api_token_session_storage = {}
+game_rooms = {}
+
+def create_room(host_id):
+    room_id = str(uuid.uuid4())[:8]
+    game_rooms[room_id] = {
+        "room_id": room_id,
+        "host": host_id,
+        "playlist_id": None,    # no playlist yet
+        "players": [host_id],
+        "status": "waiting",
+    }
+    return game_rooms[room_id]
 
 
 app = Flask(__name__)
@@ -138,6 +150,85 @@ def me():
         headers={"Authorization": f"Bearer {spotify_api_token}"},
     )
     return jsonify(r.json()), r.status_code
+
+
+# Creation of game room
+@app.post("/api/game/create")
+def create_game():
+    spotify_api_token = request.cookies.get("spotify_api_token")
+    if not spotify_api_token:
+        return jsonify({"error": "unauthorized"}), 401
+
+    # Identify host via Spotify me endpoint
+    me = requests.get(
+        "https://api.spotify.com/v1/me",
+        headers={"Authorization": f"Bearer {spotify_api_token}"},
+    )
+    if me.status_code != 200:
+        return jsonify({"error": "cannot verify user"}), 401
+
+    host_info = me.json()
+    host_id = host_info.get("id")
+
+    # Check if user has already opened the room
+    existing_room = next(
+        (r for r in game_rooms.values() if r["host"] == host_id),
+        None,
+    )
+    if existing_room:
+        print(f"User {host_id} already has game {existing_room['room_id']}")
+        return jsonify(existing_room), 403
+
+    room = create_room(host_id)
+    print(f"Created game room {room['room_id']} by {host_id}")
+    return jsonify(room), 201
+
+@app.delete("/api/game/<room_id>")
+def delete_game(room_id):
+    # Verify request auth
+    spotify_api_token = request.cookies.get("spotify_api_token")
+    if not spotify_api_token:
+        return jsonify({"error": "unauthorized"}), 401
+
+    r = requests.get(
+        "https://api.spotify.com/v1/me",
+        headers={"Authorization": f"Bearer {spotify_api_token}"},
+    )
+    if r.status_code != 200:
+        return jsonify({"error": "cannot verify user"}), 401
+
+    user_id = r.json().get("id")
+
+    # Validate room existence
+    room = game_rooms.get(room_id)
+    if not room:
+        return jsonify({"error": "room not found"}), 404
+
+    # Verify ownership
+    if room["host"] != user_id:
+        return jsonify({"error": "forbidden – only host may delete room"}), 403
+
+    del game_rooms[room_id]
+    print(f"Room {room_id} deleted by host {user_id}")
+
+    return jsonify({"status": "deleted", "room_id": room_id}), 200
+
+# Set playlist
+@app.post("/api/game/set-playlist")
+def set_playlist():
+    data = request.get_json()
+    room_id = data.get("room_id")
+    playlist_id = data.get("playlist_id")
+
+    if not room_id or room_id not in game_rooms:
+        return jsonify({"error": "invalid room"}), 404
+
+    room = game_rooms[room_id]
+    room["playlist_id"] = playlist_id
+    print(f"Room {room_id} playlist set to {playlist_id}")
+    return jsonify(room)
+    
+
 
 
 if __name__ == "__main__":
