@@ -1,4 +1,6 @@
-import { createContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import { io } from "socket.io-client";
+import AuthContext from "./AuthProvider";
 
 const GameContext = createContext({
   room: null,
@@ -16,6 +18,14 @@ export function GameProvider({ children }) {
   const [error, setError] = useState(null);
   const [activeRoomId, setActiveRoomId] = useState(null);
 
+  const { user } = useContext(AuthContext);
+
+  const socket = io("https://localhost:5000", {
+    withCredentials: true,
+    transports: ["websocket"],
+    secure: true,
+  });
+
   const createGame = async () => {
     console.log("creating game");
     try {
@@ -32,6 +42,12 @@ export function GameProvider({ children }) {
       setActiveRoomId(data.room_id);
       console.log("New Game:");
       console.log(data);
+
+      socket.emit("join_room", {
+        room_id: data.room_id,
+        user_name: user.email, // optional, if available
+      });
+
       return data;
     } catch (err) {
       console.error(err);

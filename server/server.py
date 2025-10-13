@@ -1,8 +1,10 @@
 from dotenv import load_dotenv
 from flask import Flask, redirect, request, jsonify, make_response
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit, join_room, leave_room
 
-
+import eventlet
+import ssl
 import string
 import random
 import os
@@ -41,6 +43,8 @@ def create_room(host_profile):
 
 app = Flask(__name__)
 
+socketio = SocketIO(app, cors_allowed_origins=FRONTEND_URL, async_mode="eventlet")
+
 CORS(
     app,
     supports_credentials=True,
@@ -66,6 +70,8 @@ def auth_login():
         f"&state={state}"
     )
 
+    print('[API] Incoming Spotify login request')
+
     return redirect(auth_url)
 
 
@@ -76,6 +82,8 @@ def auth_callback():
     access_code = request.args.get("code")
     if not access_code:
         return jsonify({"error": "Missing code parameter from Spotify callback"}), 400
+    
+    print(f'[API] Spotify callback recieved with code: {access_code}')
     
     # After the access code is decoded, we make a request to /api/token to receive the API token.     
     SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
@@ -102,7 +110,7 @@ def auth_callback():
     if api_token_response.status_code == 200:
         token_info = api_token_response.json()
         api_token = token_info.get("access_token")
-        print("Token retrieved successfuly")
+        print(f'[API] Web API Token retrieved successfully : {api_token}')
         session_id = str(uuid.uuid4())
         api_token_session_storage[session_id] = api_token
         return redirect(f"{FRONTEND_URL}?sid={session_id}")
@@ -118,7 +126,7 @@ def get_spotify_token():
     print(sid)
     print(sid in api_token_session_storage)
 
-    if not sid:
+    if not sid or not sid in api_token_session_storage:
         return {"error": "invalid session"}, 400
     
     # Token is retrieved from the session storage and the entry is deleted afterwards
@@ -273,7 +281,56 @@ def set_playlist():
     return jsonify(room)
     
 
+@socketio.on("connect")
+def on_connect():
+    print("[SocketIO] Client connected")
 
+@socketio.on("join_room")
+def on_join(data):
+    room_id = data.get("room_id")
+    user_name = data.get("user_name")
+
+    if not room_id:
+        emit("error", {"message": "Missing room_id"})
+        return
+
+    join_room(room_id)
+    print(f"[SocketIO] {user_name} joined room {room_id}")
+
+    emit("user_joined", {"user_name": user_name, "room_id": room_id}, room=room_id)
+
+@socketio.on("leave_room")
+def on_leave(data):
+    room_id = data.get("room_id")
+    user_name = data.get("user_name")
+
+    leave_room(room_id)
+    print(f"[SocketIO] {user_name} left room {room_id}")
+
+    emit("user_left", {"user_name": user_name, "room_id": room_id}, room=room_id)
+
+
+
+# if __name__ == "__main__":
+#     socketio.run(
+#         app,
+#         ssl_context=("/Users/I743406/Personal-Development/guess-the-song/server/localhost+2.pem", "/Users/I743406/Personal-Development/guess-the-song/server/localhost+2-key.pem"),
+#         host="127.0.0.1",
+#         port=5000,
+#         debug=True,
+#     )
 
 if __name__ == "__main__":
-    app.run(ssl_context=("cert.pem", "key.pem"), host="127.0.0.1", port=5000, debug=True)
+    cert_path = "/Users/I743406/Personal-Development/guess-the-song/server/localhost+2.pem"
+    key_path = "/Users/I743406/Personal-Development/guess-the-song/server/localhost+2-key.pem"
+
+    listener = eventlet.listen(("127.0.0.1", 5000))
+    ssl_listener = eventlet.wrap_ssl(
+        listener,
+        server_side=True,
+        certfile=cert_path,
+        keyfile=key_path,
+    )
+
+    # note we run the socketio server here, not just the app
+    eventlet.wsgi.server(ssl_listener, app)
