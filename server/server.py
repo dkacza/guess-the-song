@@ -37,6 +37,7 @@ def create_room(host_profile):
         "playlist_id": None,
         "players": [host_profile],  # full profile dicts
         "status": "waiting",
+        "access_code": generate_random_string(16)
     }
     return game_rooms[room_id]
 
@@ -261,6 +262,7 @@ def get_game(room_id):
         "playlist_id": room.get("playlist_id"),
         "status": room.get("status"),
         "players": room["players"],
+        "access_code": room["access_code"]
     }
 
     return jsonify(room_info), 200

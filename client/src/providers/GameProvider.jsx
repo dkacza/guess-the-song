@@ -40,14 +40,10 @@ export function GameProvider({ children }) {
       setRoom(data);
       localStorage.setItem("room_id", data.room_id);
       setActiveRoomId(data.room_id);
-      console.log("New Game:");
-      console.log(data);
-
       socket.emit("join_room", {
         room_id: data.room_id,
         user_name: user.email, // optional, if available
       });
-
       return data;
     } catch (err) {
       console.error(err);

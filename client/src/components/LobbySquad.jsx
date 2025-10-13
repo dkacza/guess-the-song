@@ -14,13 +14,12 @@ const containerStyling = {
 
 function LobbySquad() {
   const [copied, setCopied] = useState(false);
-  const gameCode = "ABCD1234";
   const { room, deleteGame } = useContext(GameContext);
   const navigate = useNavigate();
 
   const handleCopyCode = async () => {
     try {
-      await navigator.clipboard.writeText(gameCode);
+      await navigator.clipboard.writeText(room.access_code);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000); // hide popup after 2s
     } catch (err) {
@@ -31,8 +30,6 @@ function LobbySquad() {
     deleteGame(room.room_id);
     navigate("/");
   };
-
-  console.log(room);
 
   return (
     <Box sx={containerStyling}>
