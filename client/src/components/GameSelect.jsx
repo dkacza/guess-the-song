@@ -2,7 +2,7 @@ import { Box, Button, Card, Input, Link, Typography } from "@mui/joy";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import MeetingRoomIcon from "@mui/icons-material/MeetingRoom";
 import { useNavigate } from "react-router-dom";
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import GameContext, { GameProvider } from "../providers/GameProvider";
 
 const containerStyling = {};
@@ -17,9 +17,8 @@ const cardStyling = {
 
 function GameSelect() {
   const navigate = useNavigate();
-  const { createGame, activeRoomId } = useContext(GameContext);
-
-  console.log(activeRoomId);
+  const { joinGame, createGame, activeGameId } = useContext(GameContext);
+  const [accessCode, setAccessCode] = useState("");
 
   return (
     <Box sx={containerStyling}>
@@ -39,8 +38,8 @@ function GameSelect() {
           <Button
             color="success"
             onClick={async () => {
-              const game = await createGame();
-              navigate("/room/" + game?.room_id);
+              await createGame();
+              navigate("/room/" + activeGameId);
             }}
           >
             New Game
@@ -56,10 +55,15 @@ function GameSelect() {
             provide you the code to enter it.
           </Typography>
           <Box sx={{ display: "flex", flexDirection: "row", gap: 0.5 }}>
-            <Input placeholder="Game Code"></Input>
+            <Input
+              placeholder="Game Code"
+              value={accessCode}
+              onChange={(e) => setAccessCode(e.target.value)}
+            ></Input>
             <Button
-              onClick={() => {
-                navigate("/lobby");
+              onClick={async () => {
+                await joinGame(accessCode);
+                navigate("/room/" + activeGameId);
               }}
               color="success"
             >
@@ -68,14 +72,14 @@ function GameSelect() {
           </Box>
         </Card>
       </Box>
-      {activeRoomId ? (
+      {activeGameId ? (
         <Box sx={{ mt: 4 }}>
           <Typography>
             There's a room that you have already been part of recently.
           </Typography>
           <Link
             onClick={() => {
-              navigate("/room/" + activeRoomId);
+              navigate("/room/" + activeGameId);
             }}
           >
             Click to join

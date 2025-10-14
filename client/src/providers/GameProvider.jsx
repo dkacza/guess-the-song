@@ -1,30 +1,39 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import AuthContext from "./AuthProvider";
 
 const GameContext = createContext({
-  room: null,
+  game: null,
   loading: false,
   error: null,
-  activeRoomId: null,
+  activeGameId: null,
+  isAdmin: false,
   createGame: () => Promise.resolve(),
-  fetchGame: (roomId) => Promise.resolve(),
-  deleteGame: (roomId) => Promise.resolve(),
+  fetchGame: (gameId) => Promise.resolve(),
+  joinGame: (accessCode) => Promise.resolve(),
+  deleteGame: (gameId) => Promise.resolve(),
 });
 
 export function GameProvider({ children }) {
-  const [room, setRoom] = useState(null);
+  const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [activeRoomId, setActiveRoomId] = useState(null);
+  const [activeGameId, setActiveGameId] = useState(null);
 
   const { user } = useContext(AuthContext);
 
-  const socket = io("https://localhost:5000", {
-    withCredentials: true,
-    transports: ["websocket"],
-    secure: true,
-  });
+  const isAdmin = game?.host === user?.id;
+
+  const socketRef = useRef(null);
+
+  if (!socketRef.current) {
+    socketRef.current = io("https://localhost:5000", {
+      withCredentials: true,
+      transports: ["websocket"],
+      secure: true,
+    });
+  }
+  const socket = socketRef.current;
 
   const createGame = async () => {
     console.log("creating game");
@@ -37,9 +46,9 @@ export function GameProvider({ children }) {
       });
       if (!res.ok) throw new Error("Failed to create game");
       const data = await res.json();
-      setRoom(data);
+      setGame(data);
       localStorage.setItem("room_id", data.room_id);
-      setActiveRoomId(data.room_id);
+      setActiveGameId(data.room_id);
       socket.emit("join_room", {
         room_id: data.room_id,
         user_name: user.email, // optional, if available
@@ -70,10 +79,34 @@ export function GameProvider({ children }) {
     });
     if (!res.ok) throw new Error("Failed to delete game");
     const data = await res.json();
-    setRoom(null);
+    setGame(null);
     localStorage.removeItem("room_id");
-    setActiveRoomId(null);
+    setActiveGameId(null);
     return data;
+  };
+
+  const joinGame = async (accessCode) => {
+    try {
+      const response = await fetch("https://localhost:5000/api/game/join", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ access_code: accessCode }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to join game");
+      }
+
+      const data = await response.json();
+      setGame(data);
+      localStorage.setItem("room_id", data.room_id);
+      setActiveGameId(data.room_id);
+      return data;
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   // Load last room from localStorage (if page refreshed)
@@ -82,23 +115,52 @@ export function GameProvider({ children }) {
     if (storedRoom) {
       const getGameDetails = async () => {
         const data = await fetchGame(storedRoom);
-        setActiveRoomId(data.room_id);
-        setRoom(data);
+        setActiveGameId(data.room_id);
+        setGame(data);
       };
       getGameDetails();
     }
   }, []);
 
+  useEffect(() => {
+    const s = socketRef.current;
+
+    s.on("connect", () => {
+      console.log("[SOCKET] Connected:", s.id);
+    });
+
+    s.on("user_joined", async (data) => {
+      console.log("[SOCKET] New user joined:", data.user_name);
+
+      // optionally refresh room data:
+      const room_id = data.room_id;
+      const updatedGame = await fetchGame(room_id);
+      setGame(updatedGame);
+    });
+
+    s.on("disconnect", () => {
+      console.log("[SOCKET] Disconnected");
+    });
+
+    return () => {
+      s.off("user_joined");
+      s.off("connect");
+      s.off("disconnect");
+    };
+  }, []);
+
   return (
     <GameContext.Provider
       value={{
-        room,
+        game,
         loading,
         error,
-        activeRoomId,
+        activeGameId,
+        isAdmin,
         createGame,
         fetchGame,
         deleteGame,
+        joinGame,
       }}
     >
       {children}

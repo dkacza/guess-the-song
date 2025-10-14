@@ -267,6 +267,58 @@ def get_game(room_id):
 
     return jsonify(room_info), 200
 
+@app.post("/api/game/join")
+def join_game():
+    data = request.get_json()
+    access_code = data.get("access_code")
+
+    spotify_api_token = request.cookies.get("spotify_api_token")
+    if not spotify_api_token:
+        return jsonify({"error": "unauthorized"}), 401
+
+    # Identify user
+    me_resp = requests.get(
+        "https://api.spotify.com/v1/me",
+        headers={"Authorization": f"Bearer {spotify_api_token}"},
+    )
+    if me_resp.status_code != 200:
+        return jsonify({"error": "cannot verify user"}), 401
+
+    player_info = me_resp.json()
+    player_id = player_info.get("id")
+
+    # Find room by access code
+    target_room = next(
+        (room for room in game_rooms.values() if room["access_code"] == access_code),
+        None,
+    )
+
+    if not target_room:
+        return jsonify({"error": "room not found"}), 404
+
+    # Check if already in the room
+    already_exists = any(p["id"] == player_id for p in target_room["players"])
+    if not already_exists:
+        target_room["players"].append(
+            {
+                "id": player_info.get("id"),
+                "display_name": player_info.get("display_name"),
+                "email": player_info.get("email"),
+            }
+        )
+        print(f"[API] Player {player_id} joined room {target_room['room_id']}")
+        # You can emit an event here if you want live updates:
+        socketio.emit(
+            "user_joined",
+            {
+                "user_name": player_info.get("display_name"),
+                "room_id": target_room["room_id"],
+            },
+            room=target_room["room_id"],
+        )
+
+    return jsonify(target_room), 200
+
 # Set playlist
 @app.post("/api/game/set-playlist")
 def set_playlist():
