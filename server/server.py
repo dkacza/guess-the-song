@@ -34,8 +34,9 @@ def create_room(host_profile):
     game_rooms[room_id] = {
         "room_id": room_id,
         "host": host_profile["id"],
-        "playlist_id": None,
-        "players": [host_profile],  # full profile dicts
+        "playlist": None,
+        "rules": None,
+        "players": [host_profile],
         "status": "waiting",
         "access_code": generate_random_string(16)
     }
@@ -222,6 +223,15 @@ def delete_game(room_id):
     # Verify ownership
     if room["host"] != user_id:
         return jsonify({"error": "forbidden – only host may delete room"}), 403
+    
+    socketio.emit(
+        "game_deleted",
+        {
+            "user_id": user_id,
+            "room_id": room_id,
+        },
+            room=room_id,
+    )
 
     del game_rooms[room_id]
     print(f"Room {room_id} deleted by host {user_id}")
@@ -259,7 +269,8 @@ def get_game(room_id):
     room_info = {
         "room_id": room["room_id"],
         "host": room["host"],
-        "playlist_id": room.get("playlist_id"),
+        "playlist": room.get("playlist"),
+        "rules": room.get("rules"),
         "status": room.get("status"),
         "players": room["players"],
         "access_code": room["access_code"]
@@ -328,10 +339,68 @@ def set_playlist():
 
     if not room_id or room_id not in game_rooms:
         return jsonify({"error": "invalid room"}), 404
+    
+    spotify_api_token = request.cookies.get("spotify_api_token")
+    if not spotify_api_token:
+        return jsonify({"error": "unauthorized"}), 401
+    
+    playlist_response = requests.get(
+        f"https://api.spotify.com/v1/playlists/{playlist_id}",
+        headers={"Authorization": f"Bearer {spotify_api_token}"},
+    )
+
+    if playlist_response.status_code != 200:
+        return jsonify({"error": "failed to fetch playlist"}), 400
+
+    playlist_data = playlist_response.json()
+
+    playlist_info = {
+        "id": playlist_data.get("id"),
+        "name": playlist_data.get("name"),
+        "owner": playlist_data.get("owner", {}).get("display_name"),
+        "tracks_total": playlist_data.get("tracks", {}).get("total"),
+        "image_url": (
+            playlist_data.get("images")[0]["url"]
+            if playlist_data.get("images")
+            else None
+        ),
+        "external_url": playlist_data.get("external_urls", {}).get("spotify"),
+        "description": playlist_data.get("description"),
+    }
+
+    rules = {
+        "rounds": int(playlist_info["tracks_total"] / 2),
+        "time_per_round": 30,
+        "speed_factor": 0.5
+    }
 
     room = game_rooms[room_id]
-    room["playlist_id"] = playlist_id
-    print(f"Room {room_id} playlist set to {playlist_id}")
+    room["playlist"] = playlist_info
+    room["rules"] = rules
+
+    print(f"Room {room_id} playlist set to {playlist_id}. Playlist details fetched from spotify")
+
+    socketio.emit("playlist_set", {"user_name": "PLACEHOLDER", "room_id": room_id}, room=room_id)
+
+    return jsonify(room)
+
+@app.post("/api/game/set-rules")
+def set_rules():
+    data = request.get_json()
+    room_id = data.get("room_id")
+    rules = data.get("rules")
+
+    if not room_id or room_id not in game_rooms:
+        return jsonify({"error": "invalid room"}), 404
+
+    room = game_rooms[room_id]
+    room["rules"] = rules
+
+    print(f"[API] Rules updated for room {room_id}: {rules}")
+
+    # Notify connected clients to sync
+    socketio.emit("rules_updated", {"room_id": room_id, "rules": rules}, room=room_id)
+
     return jsonify(room)
     
 
@@ -360,6 +429,19 @@ def on_leave(data):
 
     leave_room(room_id)
     print(f"[SocketIO] {user_name} left room {room_id}")
+
+    room = game_rooms.get(room_id)
+    if room:
+        before = len(room["players"])
+        room["players"] = [
+            p for p in room["players"] if p.get("email") != user_name
+        ]
+        after = len(room["players"])
+        print(f"[SocketIO] Updated {room_id} player list: {before} → {after}")
+
+        if len(room["players"]) == 0:
+            print(f"[SocketIO] Room {room_id} now empty — deleting from registry.")
+            del game_rooms[room_id]
 
     emit("user_left", {"user_name": user_name, "room_id": room_id}, room=room_id)
 

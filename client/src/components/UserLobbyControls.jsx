@@ -5,11 +5,12 @@ import GameContext from "../providers/GameProvider";
 import { useNavigate } from "react-router-dom";
 
 function UserLobbyControls() {
-  const { game, leaveGame } = useContext(GameContext);
+  // @ts-ignore
+  const { handleLeaveGame } = useContext(GameContext);
   const navigate = useNavigate();
 
-  const handleLeaveGame = async () => {
-    leaveGame(game.room_id);
+  const leaveGame = async () => {
+    await handleLeaveGame();
     navigate("/");
   };
 
@@ -28,7 +29,7 @@ function UserLobbyControls() {
       <Button
         color="danger"
         startDecorator={<LogoutIcon />}
-        onClick={handleLeaveGame}
+        onClick={leaveGame}
       >
         Leave the lobby
       </Button>

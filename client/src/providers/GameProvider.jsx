@@ -1,166 +1,203 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { io } from "socket.io-client";
+import { createContext, useContext, useEffect, useReducer } from "react";
 import AuthContext from "./AuthProvider";
+import { useSocket } from "../hooks/useSocket";
+import { useGameApi } from "../hooks/useGameApi";
+import { useNavigate } from "react-router-dom";
 
-const GameContext = createContext({
+const LOCAL_STORAGE_GAME_ID_KEY = "game_id";
+
+const GameContext = createContext({});
+
+const initialState = {
   game: null,
   loading: false,
   error: null,
-  activeGameId: null,
-  isAdmin: false,
-  createGame: () => Promise.resolve(),
-  fetchGame: (gameId) => Promise.resolve(),
-  joinGame: (accessCode) => Promise.resolve(),
-  deleteGame: (gameId) => Promise.resolve(),
-});
+};
+
+function reducer(state, action) {
+  switch (action.type) {
+    case "SET_GAME":
+      return {
+        ...state,
+        game: action.payload,
+      };
+    case "RESET_GAME":
+      return initialState;
+    case "SET_LOADING":
+      return { ...state, loading: action.payload };
+    case "SET_ERROR":
+      return { ...state, error: action.payload };
+    default:
+      return state;
+  }
+}
+
+function extractPlaylistId(url) {
+  const match = url.match(/playlist[/:]([A-Za-z0-9]+)/);
+  return match ? match[1] : null;
+}
 
 export function GameProvider({ children }) {
-  const [game, setGame] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [activeGameId, setActiveGameId] = useState(null);
-
   const { user } = useContext(AuthContext);
+  const { createGame, fetchGame, joinGame, deleteGame, setPlaylist, setRules } =
+    useGameApi();
+  const [state, dispatch] = useReducer(reducer, initialState);
 
-  const isAdmin = game?.host === user?.id;
+  const navigate = useNavigate();
 
-  const socketRef = useRef(null);
+  const isAdmin = state.game?.host === user?.id;
 
-  if (!socketRef.current) {
-    socketRef.current = io("https://localhost:5000", {
-      withCredentials: true,
-      transports: ["websocket"],
-      secure: true,
-    });
-  }
-  const socket = socketRef.current;
-
-  const createGame = async () => {
-    console.log("creating game");
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await fetch("https://localhost:5000/api/game/create", {
-        method: "POST",
-        credentials: "include",
+  const socket = useSocket({
+    user_joined: async (data) => {
+      console.log("[SOCKET] user_joined:", data);
+      const updatedGame = await fetchGame(data.room_id);
+      dispatch({ type: "SET_GAME", payload: updatedGame });
+    },
+    game_deleted: () => {
+      console.log("[SOCKET] game_deleted");
+      localStorage.removeItem(LOCAL_STORAGE_GAME_ID_KEY);
+      dispatch({ type: "RESET_GAME" });
+      navigate("/");
+    },
+    user_left: async (data) => {
+      console.log("[SOCKET] user left");
+      const updatedGame = await fetchGame(data.room_id);
+      dispatch({ type: "SET_GAME", payload: updatedGame });
+    },
+    playlist_set: async (data) => {
+      console.log("[SOCKET] playlist set");
+      const updatedGame = await fetchGame(data.room_id);
+      dispatch({ type: "SET_GAME", payload: updatedGame });
+    },
+    rules_updated: async (data) => {
+      console.log("[SOCKET] rules_updated:", data.rules);
+      const updatedGame = await fetchGame(data.room_id);
+      dispatch({
+        type: "SET_GAME",
+        payload: { ...state.game, rules: updatedGame.rules },
       });
-      if (!res.ok) throw new Error("Failed to create game");
-      const data = await res.json();
-      setGame(data);
-      localStorage.setItem("room_id", data.room_id);
-      setActiveGameId(data.room_id);
+    },
+  });
+
+  // Current game is persisted in local storage
+  useEffect(() => {
+    const storedGameId = localStorage.getItem(LOCAL_STORAGE_GAME_ID_KEY);
+    if (storedGameId) {
+      fetchGame(storedGameId).then((data) => {
+        dispatch({ type: "SET_GAME", payload: data });
+        socket.emit("join_room", {
+          room_id: storedGameId,
+          user_name: user.email,
+        });
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleCreateGame() {
+    let game = null;
+    dispatch({ type: "SET_LOADING", payload: true });
+    try {
+      const data = await createGame();
+      dispatch({ type: "SET_GAME", payload: data });
+      localStorage.setItem(LOCAL_STORAGE_GAME_ID_KEY, data.room_id);
       socket.emit("join_room", {
         room_id: data.room_id,
-        user_name: user.email, // optional, if available
+        user_name: user.email,
       });
-      return data;
+      game = data;
     } catch (err) {
-      console.error(err);
-      setError("Could not create game");
-      throw err;
+      dispatch({ type: "SET_ERROR", payload: err.message });
     } finally {
-      setLoading(false);
+      dispatch({ type: "SET_LOADING", payload: false });
     }
-  };
-
-  async function fetchGame(roomId) {
-    const res = await fetch(`https://localhost:5000/api/game/${roomId}`, {
-      credentials: "include",
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to load room");
-    return data;
+    return game;
   }
 
-  const deleteGame = async (roomId) => {
-    const res = await fetch(`https://localhost:5000/api/game/${roomId}`, {
-      method: "DELETE",
-      credentials: "include",
-    });
-    if (!res.ok) throw new Error("Failed to delete game");
-    const data = await res.json();
-    setGame(null);
-    localStorage.removeItem("room_id");
-    setActiveGameId(null);
-    return data;
-  };
-
-  const joinGame = async (accessCode) => {
+  async function handleJoinGame(accessCode) {
     try {
-      const response = await fetch("https://localhost:5000/api/game/join", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ access_code: accessCode }),
+      const data = await joinGame(accessCode);
+      console.log(data);
+      dispatch({ type: "SET_GAME", payload: data });
+      localStorage.setItem(LOCAL_STORAGE_GAME_ID_KEY, data.room_id);
+
+      socket.emit("join_room", {
+        room_id: data.room_id,
+        user_name: user.email,
       });
 
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || "Failed to join game");
-      }
-
-      const data = await response.json();
-      setGame(data);
-      localStorage.setItem("room_id", data.room_id);
-      setActiveGameId(data.room_id);
       return data;
     } catch (err) {
+      dispatch({ type: "SET_ERROR", payload: err.message });
+    }
+  }
+
+  async function handleDeleteGame() {
+    if (!state?.game?.room_id) return;
+    await deleteGame(state.game.room_id);
+    localStorage.removeItem(LOCAL_STORAGE_GAME_ID_KEY);
+    dispatch({ type: "RESET_GAME" });
+  }
+
+  async function handleLeaveGame() {
+    socket.emit("leave_room", {
+      room_id: state.game.room_id,
+      user_name: user.email,
+    });
+    localStorage.removeItem(LOCAL_STORAGE_GAME_ID_KEY);
+    dispatch({ type: "RESET_GAME" });
+  }
+
+  async function handleSetPlaylist(url) {
+    const playlistId = extractPlaylistId(url);
+    if (!playlistId) {
+      dispatch({ type: "SET_ERROR", payload: "Invalid Spotify playlist URL" });
+      return;
+    }
+
+    if (!state.game?.room_id) {
+      dispatch({ type: "SET_ERROR", payload: "No active game found" });
+      return;
+    }
+    console.log(playlistId);
+
+    dispatch({ type: "SET_LOADING", payload: true });
+    try {
+      const updatedGame = await setPlaylist(state.game.room_id, playlistId);
+      dispatch({ type: "SET_GAME", payload: updatedGame });
+    } catch (err) {
       console.error(err);
+      dispatch({ type: "SET_ERROR", payload: err.message });
+    } finally {
+      dispatch({ type: "SET_LOADING", payload: false });
     }
-  };
+  }
 
-  // Load last room from localStorage (if page refreshed)
-  useEffect(() => {
-    const storedRoom = localStorage.getItem("room_id");
-    if (storedRoom) {
-      const getGameDetails = async () => {
-        const data = await fetchGame(storedRoom);
-        setActiveGameId(data.room_id);
-        setGame(data);
-      };
-      getGameDetails();
+  async function handleSetRules(rules) {
+    if (!state.game?.room_id) return;
+    dispatch({ type: "SET_LOADING", payload: true });
+    try {
+      const updatedGame = await setRules(state.game.room_id, rules);
+      dispatch({ type: "SET_GAME", payload: updatedGame });
+    } catch (err) {
+      console.error(err);
+      dispatch({ type: "SET_ERROR", payload: err.message });
+    } finally {
+      dispatch({ type: "SET_LOADING", payload: false });
     }
-  }, []);
-
-  useEffect(() => {
-    const s = socketRef.current;
-
-    s.on("connect", () => {
-      console.log("[SOCKET] Connected:", s.id);
-    });
-
-    s.on("user_joined", async (data) => {
-      console.log("[SOCKET] New user joined:", data.user_name);
-
-      // optionally refresh room data:
-      const room_id = data.room_id;
-      const updatedGame = await fetchGame(room_id);
-      setGame(updatedGame);
-    });
-
-    s.on("disconnect", () => {
-      console.log("[SOCKET] Disconnected");
-    });
-
-    return () => {
-      s.off("user_joined");
-      s.off("connect");
-      s.off("disconnect");
-    };
-  }, []);
+  }
 
   return (
     <GameContext.Provider
       value={{
-        game,
-        loading,
-        error,
-        activeGameId,
+        ...state,
         isAdmin,
-        createGame,
-        fetchGame,
-        deleteGame,
-        joinGame,
+        handleCreateGame,
+        handleJoinGame,
+        handleDeleteGame,
+        handleLeaveGame,
+        handleSetPlaylist,
+        handleSetRules,
       }}
     >
       {children}

@@ -44,7 +44,7 @@ function LobbyView() {
             <LobbySquad />
           </Box>
         ) : (
-          <Navigate to="/home" />
+          <Navigate to="/" />
         )}
       </Box>
     </Box>

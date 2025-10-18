@@ -6,7 +6,8 @@ import GameContext from "../providers/GameProvider";
 import { useNavigate } from "react-router-dom";
 
 function AdminLobbyControls() {
-  const { game, deleteGame } = useContext(GameContext);
+  // @ts-ignore
+  const { game, handleDeleteGame } = useContext(GameContext);
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
 
@@ -20,7 +21,7 @@ function AdminLobbyControls() {
     }
   };
   const handleLobbyResolve = async () => {
-    deleteGame(game.room_id);
+    handleDeleteGame(game.room_id);
     navigate("/");
   };
 

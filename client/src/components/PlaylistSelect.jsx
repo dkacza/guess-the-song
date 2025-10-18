@@ -7,9 +7,10 @@ import {
   Slider,
   Typography,
 } from "@mui/joy";
-import { useEffect, useState } from "react";
-import WebSDKDemo from "./WebSDKPlayer";
-import WebSDKPlayer from "./WebSDKPlayer";
+import { useContext, useState } from "react";
+import GameContext from "../providers/GameProvider";
+import AdminGameRules from "./AdminGameRules";
+import UserGameRules from "./UserGameRules";
 
 const containerStyling = {
   display: "flex",
@@ -18,50 +19,15 @@ const containerStyling = {
   p: 4,
 };
 
-const extractPlaylistId = function (url) {
-  const match = url.match(/playlist[/:]([A-Za-z0-9]+)/);
-  return match ? match[1] : null;
-};
-
 function PlaylistSelect() {
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [playlist, setPlaylist] = useState(null);
+  // @ts-ignore
+  const { game, handleSetPlaylist, isAdmin } = useContext(GameContext);
   const [url, setUrl] = useState("");
-  const [token, setToken] = useState(null);
 
-  const getPlaylistInfo = async (url) => {
-    const playlistId = extractPlaylistId(url);
-    if (!playlistId) {
-      setError("Invalid playlist link");
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-    setPlaylist(null);
-
-    try {
-      const res = await fetch(
-        `https://localhost:5000/api/playlist-info/${playlistId}`,
-        { credentials: "include" }
-      );
-      if (!res.ok) throw new Error(`status ${res.status}`);
-      const data = await res.json();
-      console.log(data);
-      setPlaylist(data);
-    } catch (err) {
-      console.error(err);
-      setError("Could not retrieve playlist info");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = (e) => {
-    console.log("submitting: " + url);
-    e.preventDefault(); // prevent page reload
-    getPlaylistInfo(url);
+  const onSubmit = (e) => {
+    e.preventDefault();
+    handleSetPlaylist(url);
+    setUrl("");
   };
 
   return (
@@ -69,34 +35,29 @@ function PlaylistSelect() {
       <Typography level="h2" color="primary" mb={4}>
         Game settings
       </Typography>
-      <Box component="form" onSubmit={handleSubmit} mb={3}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-          <Input
-            placeholder="Paste Spotify playlist URL"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            sx={{ width: "100%", maxWidth: 500 }}
-          />
-          <Button
-            type="submit"
-            color="success"
-            loading={loading}
-            disabled={!url.trim()}
-          >
-            Submit
-          </Button>
-        </Box>
-        {error && (
-          <Typography level="body-sm" color="danger" mt={1}>
-            {error}
+      {isAdmin ? (
+        <Box component="form" mb={3} onSubmit={onSubmit}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <Input
+              placeholder="Paste Spotify playlist URL"
+              sx={{ width: "100%", maxWidth: 500 }}
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+            />
+            <Button type="submit" color="success">
+              Submit
+            </Button>
+          </Box>
+          <Typography level="body-xs" marginTop={1}>
+            Do not attempt to use the the playlists created by Spotify, as they
+            have been blocked by recent Web API update
           </Typography>
-        )}
-        <Typography level="body-xs" marginTop={1}>
-          Do not attempt to use the the playlists created by Spotify, as they
-          have been blocked by recent Web API update
-        </Typography>
-      </Box>
-      {playlist ? (
+        </Box>
+      ) : (
+        <></>
+      )}
+
+      {game.playlist ? (
         <Card sx={{ display: "flex", flexDirection: "row", maxWidth: 600 }}>
           <Box
             sx={{
@@ -108,7 +69,7 @@ function PlaylistSelect() {
             }}
           >
             <img
-              src={playlist?.images?.[0]?.url}
+              src={game?.playlist?.image_url}
               alt="Playlist cover"
               style={{
                 width: "100%",
@@ -120,36 +81,35 @@ function PlaylistSelect() {
           </Box>
           <Box>
             <Typography level="h2" color="primary">
-              {playlist?.name}
+              {game.playlist?.name}
             </Typography>
-            <Typography>Owner: {playlist?.owner?.display_name}</Typography>
-            <Typography>Track count: {playlist?.tracks?.total}</Typography>
+            <Typography>Owner: {game?.playlist?.owner}</Typography>
+            <Typography>Track count: {game?.playlist?.tracks_total}</Typography>
           </Box>
         </Card>
       ) : (
-        <></>
+        <Typography color="neutral">
+          Once the playlist will be selected it's details will be displayed
+          here.
+        </Typography>
       )}
       <Divider sx={{ marginTop: 4, marginBottom: 4, maxWidth: 640 }}></Divider>
+
       <Box sx={{ maxWidth: 640 }}>
         <Typography level="h3" color="primary" marginBottom={2}>
           Rules
         </Typography>
-        <Typography>Rounds</Typography>
-        <Slider aria-label="Always visible" defaultValue={10} />
-        <Typography>Time per round</Typography>
-        <Slider min={5} max={30} aria-label="Always visible" />
-        <Typography>Time factor</Typography>
-        <Slider
-          min={0}
-          max={1}
-          step={0.1}
-          aria-label="Always visible"
-          defaultValue={0.5}
-        />
-      </Box>
-
-      <Box className="web-sdk-demo" sx={{ mt: 4 }}>
-        {playlist && <WebSDKPlayer token={token} playlistUri={playlist.uri} />}
+        {game?.playlist ? (
+          isAdmin ? (
+            <AdminGameRules />
+          ) : (
+            <UserGameRules />
+          )
+        ) : (
+          <Typography color="neutral">
+            Playlist must be selected in order to specify the game rules
+          </Typography>
+        )}
       </Box>
     </Box>
   );

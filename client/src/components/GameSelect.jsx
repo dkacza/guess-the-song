@@ -17,7 +17,8 @@ const cardStyling = {
 
 function GameSelect() {
   const navigate = useNavigate();
-  const { joinGame, createGame, activeGameId } = useContext(GameContext);
+  // @ts-ignore
+  const { handleJoinGame, handleCreateGame, game } = useContext(GameContext);
   const [accessCode, setAccessCode] = useState("");
 
   return (
@@ -38,8 +39,8 @@ function GameSelect() {
           <Button
             color="success"
             onClick={async () => {
-              await createGame();
-              navigate("/room/" + activeGameId);
+              const newGame = await handleCreateGame();
+              navigate("/room/" + newGame?.room_id);
             }}
           >
             New Game
@@ -62,8 +63,9 @@ function GameSelect() {
             ></Input>
             <Button
               onClick={async () => {
-                await joinGame(accessCode);
-                navigate("/room/" + activeGameId);
+                const newGame = await handleJoinGame(accessCode);
+                console.log(newGame);
+                navigate("/room/" + newGame?.room_id);
               }}
               color="success"
             >
@@ -72,14 +74,14 @@ function GameSelect() {
           </Box>
         </Card>
       </Box>
-      {activeGameId ? (
+      {game?.room_id ? (
         <Box sx={{ mt: 4 }}>
           <Typography>
             There's a room that you have already been part of recently.
           </Typography>
           <Link
             onClick={() => {
-              navigate("/room/" + activeGameId);
+              navigate("/room/" + game?.room_id);
             }}
           >
             Click to join

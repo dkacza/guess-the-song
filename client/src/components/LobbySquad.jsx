@@ -12,6 +12,7 @@ const containerStyling = {
 };
 
 function LobbySquad() {
+  // @ts-ignore
   const { game, isAdmin } = useContext(GameContext);
 
   return (
