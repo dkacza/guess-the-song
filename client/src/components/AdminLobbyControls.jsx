@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 
 function AdminLobbyControls() {
   // @ts-ignore
-  const { game, handleDeleteGame } = useContext(GameContext);
+  const { game, handleDeleteGame, handleStartGame } = useContext(GameContext);
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
 
@@ -23,6 +23,13 @@ function AdminLobbyControls() {
   const handleLobbyResolve = async () => {
     handleDeleteGame(game.room_id);
     navigate("/");
+  };
+  const handleGameStart = async () => {
+    if (!game?.playlist) {
+      console.log("Select the playlist to start the game");
+      return;
+    }
+    await handleStartGame();
   };
 
   return (
@@ -55,7 +62,11 @@ function AdminLobbyControls() {
         >
           Resolve lobby
         </Button>
-        <Button color="success" startDecorator={<StartOutlined />}>
+        <Button
+          color="success"
+          startDecorator={<StartOutlined />}
+          onClick={handleGameStart}
+        >
           Start the game
         </Button>
       </Box>

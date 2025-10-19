@@ -102,7 +102,10 @@ def get_game(room_id):
         "rules": room.get("rules"),
         "status": room.get("status"),
         "players": room["players"],
-        "access_code": room["access_code"]
+        "access_code": room["access_code"],
+        "round": room.get("round"),
+        "scoreboard": room.get("scoreboard"),
+        "guesses": room.get("guesses"),
     }
 
     return jsonify(room_info), 200
@@ -190,6 +193,7 @@ def set_playlist():
         "name": playlist_data.get("name"),
         "owner": playlist_data.get("owner", {}).get("display_name"),
         "tracks_total": playlist_data.get("tracks", {}).get("total"),
+        "tracks": playlist_data.get("tracks"),
         "image_url": (
             playlist_data.get("images")[0]["url"]
             if playlist_data.get("images")

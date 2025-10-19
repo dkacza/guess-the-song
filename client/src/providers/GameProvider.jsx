@@ -77,6 +77,31 @@ export function GameProvider({ children }) {
         payload: { ...state.game, rules: updatedGame.rules },
       });
     },
+    game_ready: async (data) => {
+      console.log("[SOCKET] game_ready:", data);
+      const updatedGame = await fetchGame(data.room_id);
+      dispatch({
+        type: "SET_GAME",
+        payload: updatedGame,
+      });
+      navigate("/game/" + updatedGame.room_id);
+    },
+    round_started: async (data) => {
+      console.log("[SOCKET] round_started: ", data);
+      const updatedGame = await fetchGame(data.room_id);
+      dispatch({
+        type: "SET_GAME",
+        payload: updatedGame,
+      });
+    },
+    round_summary: async (data) => {
+      console.log("[SOCKET] round_summary", data);
+      const updatedGame = await fetchGame(data.room_id);
+      dispatch({
+        type: "SET_GAME",
+        payload: updatedGame,
+      });
+    },
   });
 
   // Current game is persisted in local storage
@@ -195,6 +220,21 @@ export function GameProvider({ children }) {
     }
   }
 
+  async function handleStartGame() {
+    console.log("Emmiting start game event");
+    socket.emit("start_game", {
+      room_id: state.game.room_id,
+      user_id: user.id,
+    });
+  }
+
+  async function handleCommenceRound() {
+    console.log("Emmiting commence round event");
+    socket.emit("commence_round", {
+      room_id: state.game.room_id,
+    });
+  }
+
   return (
     <GameContext.Provider
       value={{
@@ -206,6 +246,8 @@ export function GameProvider({ children }) {
         handleLeaveGame,
         handleSetPlaylist,
         handleSetRules,
+        handleStartGame,
+        handleCommenceRound,
       }}
     >
       {children}
