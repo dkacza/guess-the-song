@@ -10,15 +10,15 @@ import LobbyView from "./views/LobbyView";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <BrowserRouter>
-      <AuthProvider>
+    <AuthProvider>
+      <BrowserRouter>
         <GameProvider>
           <Routes>
             <Route path="/" element={<HomeView />} />
             <Route path="/room/:id" element={<LobbyView />} />
           </Routes>
         </GameProvider>
-      </AuthProvider>
-    </BrowserRouter>
+      </BrowserRouter>
+    </AuthProvider>
   </StrictMode>
 );

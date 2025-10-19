@@ -99,8 +99,6 @@ export function GameProvider({ children }) {
           navigate("/");
         });
     }
-    // If in lobby view go back to the home view
-    navigate("/");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
