@@ -83,14 +83,24 @@ export function GameProvider({ children }) {
   useEffect(() => {
     const storedGameId = localStorage.getItem(LOCAL_STORAGE_GAME_ID_KEY);
     if (storedGameId) {
-      fetchGame(storedGameId).then((data) => {
-        dispatch({ type: "SET_GAME", payload: data });
-        socket.emit("join_room", {
-          room_id: storedGameId,
-          user_name: user.email,
+      fetchGame(storedGameId)
+        .then((data) => {
+          dispatch({ type: "SET_GAME", payload: data });
+          socket.emit("join_room", {
+            room_id: storedGameId,
+            user_name: user.email,
+          });
+        })
+        .catch(() => {
+          // If game not present on the backend delete the entry and reset the state
+          console.log("Game not found on the server - resetting");
+          localStorage.removeItem(LOCAL_STORAGE_GAME_ID_KEY);
+          dispatch({ type: "RESET_GAME" });
+          navigate("/");
         });
-      });
     }
+    // If in lobby view go back to the home view
+    navigate("/");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

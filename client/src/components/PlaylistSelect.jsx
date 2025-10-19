@@ -57,7 +57,7 @@ function PlaylistSelect() {
         <></>
       )}
 
-      {game.playlist ? (
+      {game?.playlist ? (
         <Card sx={{ display: "flex", flexDirection: "row", maxWidth: 600 }}>
           <Box
             sx={{

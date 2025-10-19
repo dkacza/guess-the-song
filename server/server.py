@@ -446,19 +446,9 @@ def on_leave(data):
     emit("user_left", {"user_name": user_name, "room_id": room_id}, room=room_id)
 
 
-
-# if __name__ == "__main__":
-#     socketio.run(
-#         app,
-#         ssl_context=("/Users/I743406/Personal-Development/guess-the-song/server/localhost+2.pem", "/Users/I743406/Personal-Development/guess-the-song/server/localhost+2-key.pem"),
-#         host="127.0.0.1",
-#         port=5000,
-#         debug=True,
-#     )
-
 if __name__ == "__main__":
-    cert_path = "/Users/I743406/Personal-Development/guess-the-song/server/localhost+2.pem"
-    key_path = "/Users/I743406/Personal-Development/guess-the-song/server/localhost+2-key.pem"
+    cert_path = "/Users/I743406/Personal-Development/guess-the-song/server/cert.pem"
+    key_path = "/Users/I743406/Personal-Development/guess-the-song/server/key.pem"
 
     listener = eventlet.listen(("127.0.0.1", 5000))
     ssl_listener = eventlet.wrap_ssl(
