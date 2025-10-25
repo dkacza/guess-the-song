@@ -18,7 +18,7 @@ def initialize_game(room_id):
 
     room.update({
         "subplaylist": subplaylist,
-        "round_index": 0,
+        "round": 0,
         "scoreboard": scoreboard,
         "status": "ready"
     })

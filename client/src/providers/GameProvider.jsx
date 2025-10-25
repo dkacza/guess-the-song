@@ -235,6 +235,16 @@ export function GameProvider({ children }) {
     });
   }
 
+  async function handleUserGuess(guess, elapsedMs) {
+    console.log("Emmiting user guess event");
+    socket.emit("user_guess", {
+      room_id: state.game.room_id,
+      user_id: user.id,
+      elapsed_time: elapsedMs,
+      guess,
+    });
+  }
+
   return (
     <GameContext.Provider
       value={{
@@ -248,6 +258,7 @@ export function GameProvider({ children }) {
         handleSetRules,
         handleStartGame,
         handleCommenceRound,
+        handleUserGuess,
       }}
     >
       {children}

@@ -7,7 +7,9 @@ import Leaderboard from "./Leaderboard";
 
 function InterRoundPanel() {
   // @ts-ignore
-  const { game, isAdmin, handleCommenceRound } = useContext(GameContext);
+  const { game, isAdmin, handleCommenceRound, handleDeleteGame } =
+    useContext(GameContext);
+  const isLastRound = game?.round == game?.rules.rounds;
 
   async function handleNextRound() {
     await handleCommenceRound();
@@ -31,13 +33,24 @@ function InterRoundPanel() {
           <></>
         )}
         <Box sx={{ mt: "auto", alignSelf: "flex-end" }}>
-          {isAdmin ? (
+          {isAdmin && !isLastRound ? (
             <Button
               sx={{ width: 240 }}
               color="success"
               onClick={handleNextRound}
             >
               Next round
+            </Button>
+          ) : (
+            <></>
+          )}
+          {isAdmin && isLastRound ? (
+            <Button
+              sx={{ width: 240 }}
+              color="success"
+              onClick={handleDeleteGame}
+            >
+              Finish the game
             </Button>
           ) : (
             <></>

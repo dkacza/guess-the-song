@@ -6,6 +6,7 @@ import { PulseLoader } from "react-spinners";
 import { Navigate } from "react-router-dom";
 import GameContext from "../providers/GameProvider";
 import InterRoundPanel from "../components/InterRoundPanel";
+import RoundPanel from "../components/RoundPanel";
 
 const containerStyles = {
   width: "100vw",
@@ -28,10 +29,10 @@ function GameView() {
   const { game } = useContext(GameContext);
 
   let panel = <></>;
-  if (game.status == "ready") {
+  if (game?.status == "ready") {
     panel = <InterRoundPanel />;
-  } else if (game.status == "round_active") {
-    panel = <div>ROUND Active</div>;
+  } else {
+    panel = <RoundPanel />;
   }
 
   console.log(game);

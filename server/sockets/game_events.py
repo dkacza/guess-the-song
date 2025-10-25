@@ -56,31 +56,31 @@ def register_socket_events(socketio):
         if not room:
             return
 
-        round_index = room["round_index"]
-        if round_index >= len(room["subplaylist"]):
+        round = room["round"]
+        if round >= len(room["subplaylist"]):
             socketio.emit("game_finished", {"scoreboard": room["scoreboard"]}, room=room_id)
             room["status"] = "finished"
             return
 
-        current_track = room["subplaylist"][round_index]
+        current_track = room["subplaylist"][round]
         room["current_track"] = current_track
         room["guesses"] = {}
         room["status"] = "round_active"
 
-        print(f"[ROUND] Starting round {round_index + 1}/{len(room['subplaylist'])}")
+        print(f"[ROUND] Starting round {round + 1}/{len(room['subplaylist'])}")
         socketio.emit(
             "round_started",
-            {"room_id": room_id, "round": round_index + 1, "track": current_track},
+            {"room_id": room_id, "round": round + 1, "track": current_track},
             room=room_id,
         )
-        print(f"[DEBUG] socketio id in app.py = {id(socketio)}")
 
         # Start timeout
         duration = room["rules"]["time_per_round"]
-        socketio.start_background_task(end_round, room_id)
+        socketio.start_background_task(delayed_end_round, room_id, duration)
 
     @socketio.on("user_guess")
     def user_guess(data):
+        print('[ROUND] User guess registered')
         room_id = data.get("room_id")
         user_id = data.get("user_id")
         guess = data.get("guess")
@@ -96,8 +96,12 @@ def register_socket_events(socketio):
         if len(room["guesses"]) == len(room["players"]):
             end_round(room_id)
 
+def delayed_end_round(room_id, delay):
+    socketio.sleep(delay)
+    end_round(room_id)
+
+
 def end_round(room_id):
-    socketio.sleep(5)
     room = game_rooms.get(room_id)
     if not room or room.get("status") != "round_active":
         return
@@ -123,17 +127,18 @@ def end_round(room_id):
             {"player": pid, "correct": correct, "points": points}
         )
 
+    room["round"]
+
     socketio.emit(
         "round_summary",
         {
             "room_id": room_id,
-            "round": room["round_index"] + 1,
+            "round": room["round"] + 1,
             "results": round_results,
             "scoreboard": room["scoreboard"],
         },
         room=room_id,
     )
-    print(f"[DEBUG] socketio id in end_round({room_id}) = {id(socketio)}")
 
-    room["round_index"] += 1
+    room["round"] += 1
     room["status"] = "ready"
