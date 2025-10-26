@@ -4,6 +4,7 @@ import { useSocket } from "../hooks/useSocket";
 import { useGameApi } from "../hooks/useGameApi";
 import { useNavigate } from "react-router-dom";
 import SpotifyContext from "./SpotifyProvider";
+import usePreventReload from "../hooks/usePreventReload";
 
 const LOCAL_STORAGE_GAME_ID_KEY = "game_id";
 
@@ -46,6 +47,9 @@ export function GameProvider({ children }) {
   const { deviceId, pauseTrack, nextTrack } = useContext(SpotifyContext);
 
   const navigate = useNavigate();
+
+  const shouldWarn = !!state.game && state.game.status == "round_active";
+  usePreventReload(shouldWarn);
 
   const isAdmin = state.game?.host === user?.id;
 
@@ -125,12 +129,15 @@ export function GameProvider({ children }) {
           dispatch({ type: "SET_GAME", payload: data });
           socket.emit("join_room", {
             room_id: storedGameId,
-            user_name: user.email,
+            user_name: user?.email,
           });
         })
-        .catch(() => {
+        .catch((err) => {
+          console.log(err);
           // If game not present on the backend delete the entry and reset the state
-          console.log("Game not found on the server - resetting");
+          console.log(
+            `Game ${storedGameId} not found on the server - resetting`
+          );
           localStorage.removeItem(LOCAL_STORAGE_GAME_ID_KEY);
           dispatch({ type: "RESET_GAME" });
           navigate("/");

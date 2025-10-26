@@ -22,6 +22,7 @@ def initialize_game(room_id):
         "scoreboard": scoreboard,
         "status": "ready"
     })
+    print(f'[MODEL] Game {room_id} initialized')
     return room
 
 def create_room(host_profile):

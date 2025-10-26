@@ -2,6 +2,7 @@ import { Box, Sheet, Typography } from "@mui/joy";
 import { useContext } from "react";
 import AuthContext from "../providers/AuthProvider";
 import { FaSpotify } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 const containerStyling = {
   borderBottom: "1px solid",
@@ -16,10 +17,17 @@ const containerStyling = {
 
 function Navbar() {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   return (
     <Sheet variant="outlined" sx={containerStyling}>
-      <Typography level="h2" color="success" ml={2}>
+      <Typography
+        level="h2"
+        color="success"
+        ml={2}
+        onClick={() => navigate("/")}
+        sx={{ cursor: "pointer" }}
+      >
         Guess-the-song!
       </Typography>
       {user ? (
