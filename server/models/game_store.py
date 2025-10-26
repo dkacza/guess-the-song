@@ -39,6 +39,7 @@ def create_room(host_profile):
         "subplaylist": [],
         "guesses": {},
         "status": "waiting",
-        "ready_players": []
+        "ready_players": [],
+        "previous_track": {},
     }
     return game_rooms[room_id]

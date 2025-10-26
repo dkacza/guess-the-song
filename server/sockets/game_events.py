@@ -158,6 +158,7 @@ def end_round(room_id):
     print(f"[ROUND] Ending round for {room_id}")
     room["status"] = "round_summary"
     room["ready_players"] = []
+    room["previous_track"] = room.get("current_track")
 
     correct_track = room["current_track"]
     round_results = []

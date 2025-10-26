@@ -1,6 +1,11 @@
 import { Box, Card, Typography } from "@mui/joy";
+import { useContext } from "react";
+import GameContext from "../providers/GameProvider";
 
 function PreviousSong() {
+  const { game } = useContext(GameContext);
+  const previousSong = game?.previous_track?.track;
+
   return (
     <Card sx={{ display: "flex", flexDirection: "row", maxWidth: 600 }}>
       <Box
@@ -13,7 +18,7 @@ function PreviousSong() {
         }}
       >
         <img
-          src="DUPA"
+          src={previousSong.album.images[0].url}
           alt="Album cover"
           style={{
             width: "100%",
@@ -24,11 +29,16 @@ function PreviousSong() {
         />
       </Box>
       <Box>
-        <Typography level="h2" color="primary">
-          Song name
+        <Typography level="h2" color="primary" mb={2}>
+          {previousSong?.name}
         </Typography>
-        <Typography>Artist: </Typography>
-        <Typography>Album:</Typography>
+        <Typography>
+          Artist:{" "}
+          {(previousSong?.artists || [])
+            .map((artist) => artist?.name)
+            .join(", ")}
+        </Typography>
+        <Typography>Album: {previousSong?.album?.name}</Typography>
       </Box>
     </Card>
   );
