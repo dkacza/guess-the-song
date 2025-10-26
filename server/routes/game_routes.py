@@ -106,6 +106,8 @@ def get_game(room_id):
         "round": room.get("round"),
         "scoreboard": room.get("scoreboard"),
         "guesses": room.get("guesses"),
+        "current_track": room.get("current_track"),
+        "ready_players": room.get("ready_players")
     }
 
     return jsonify(room_info), 200

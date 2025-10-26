@@ -1,9 +1,10 @@
 import { Box, Button, Card, Input, Slider, Typography } from "@mui/joy";
 import { useContext, useEffect, useRef, useState } from "react";
 import GameContext from "../providers/GameProvider";
-import MusicNoteIcon from "@mui/icons-material/MusicNote";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
-import AuthContext from "../providers/AuthProvider";
+import SpotifyContext from "../providers/SpotifyProvider";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import StopIcon from "@mui/icons-material/Stop";
 
 const mainContainerStyling = {
   display: "flex",
@@ -15,6 +16,13 @@ const mainContainerStyling = {
 function RoundPanel() {
   // @ts-ignore
   const { game, handleUserGuess } = useContext(GameContext);
+  // @ts-ignore
+  const { paused, togglePlay } = useContext(SpotifyContext);
+
+  const handleTogglePlay = () => {
+    togglePlay();
+  };
+  const isPlaying = !paused;
 
   const totalTime = game?.rules?.time_per_round || 20;
   const [remainingTime, setRemainingTime] = useState(totalTime);
@@ -58,7 +66,7 @@ function RoundPanel() {
       setRemainingTime((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
-          handleTimeout(); // trigger auto submission
+          handleTimeout();
           return 0;
         }
         return prev - 1;
@@ -70,65 +78,76 @@ function RoundPanel() {
   }, [game?.round_index]); // restart timer on new round
 
   return (
-    <Box sx={mainContainerStyling}>
-      <Typography level="h1" color="primary">
-        Round {roundNumber}
-      </Typography>
-      <Typography>Total rounds: {game?.rules.rounds}</Typography>
-      <Typography
-        level="h3"
-        mt={4}
-        color={remainingTime > 10 ? "neutral" : "danger"}
-      >
-        {roundTimeString}
-      </Typography>
-      <Typography></Typography>
-      <Card
-        sx={{
-          mt: 8,
-          width: 400,
-          height: 400,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          borderRadius: 40,
-        }}
-      >
-        <MusicNoteIcon color="primary" sx={{ fontSize: 200 }} />
-      </Card>
-      <Box sx={{ display: "flex", minWidth: 300, gap: 4, mt: 2 }}>
-        <VolumeUpIcon color="primary" sx={{ fontSize: 48 }} />
-        <Slider />
-      </Box>
-      <Box
-        component="form"
-        sx={{ mt: 8, gap: 2, display: "flex", flexDirection: "column" }}
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleSubmit();
-        }}
-      >
-        <Input
-          placeholder="Title"
-          value={titleGuess}
-          onChange={(e) => setTitleGuess(e.target.value)}
-          disabled={submitted}
-        />
-        <Input
-          placeholder="Artist"
-          value={artistGuess}
-          onChange={(e) => setArtistGuess(e.target.value)}
-          disabled={submitted}
-        />
-        <Button
-          type="submit"
-          color="success"
-          disabled={submitted && remainingTime > 0}
+    <>
+      <Box sx={mainContainerStyling}>
+        <Typography level="h1" color="primary">
+          Round {roundNumber}
+        </Typography>
+        <Typography>Total rounds: {game?.rules.rounds}</Typography>
+        <Typography
+          level="h3"
+          mt={4}
+          color={remainingTime > 10 ? "neutral" : "danger"}
         >
-          {submitted ? "Submitted" : "Submit"}
-        </Button>
+          {roundTimeString}
+        </Typography>
+        <Typography></Typography>
+        <Card
+          sx={{
+            mt: 8,
+            width: 400,
+            height: 400,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: 40,
+            cursor: "pointer",
+            ":hover": { bgcolor: "neutral.softBg" },
+          }}
+          onClick={() => {
+            handleTogglePlay(); // 🪄 call your context function
+          }}
+        >
+          {isPlaying ? (
+            <StopIcon sx={{ fontSize: 200 }} />
+          ) : (
+            <PlayArrowIcon color="success" sx={{ fontSize: 200 }} />
+          )}
+        </Card>
+        <Box sx={{ display: "flex", minWidth: 300, gap: 4, mt: 2 }}>
+          <VolumeUpIcon color="primary" sx={{ fontSize: 48 }} />
+          <Slider />
+        </Box>
+        <Box
+          component="form"
+          sx={{ mt: 8, gap: 2, display: "flex", flexDirection: "column" }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+        >
+          <Input
+            placeholder="Title"
+            value={titleGuess}
+            onChange={(e) => setTitleGuess(e.target.value)}
+            disabled={submitted}
+          />
+          <Input
+            placeholder="Artist"
+            value={artistGuess}
+            onChange={(e) => setArtistGuess(e.target.value)}
+            disabled={submitted}
+          />
+          <Button
+            type="submit"
+            color="success"
+            disabled={submitted && remainingTime > 0}
+          >
+            {submitted ? "Submitted" : "Submit"}
+          </Button>
+        </Box>
       </Box>
-    </Box>
+    </>
   );
 }
 

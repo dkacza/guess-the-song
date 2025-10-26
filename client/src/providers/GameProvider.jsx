@@ -3,6 +3,7 @@ import AuthContext from "./AuthProvider";
 import { useSocket } from "../hooks/useSocket";
 import { useGameApi } from "../hooks/useGameApi";
 import { useNavigate } from "react-router-dom";
+import SpotifyContext from "./SpotifyProvider";
 
 const LOCAL_STORAGE_GAME_ID_KEY = "game_id";
 
@@ -42,6 +43,7 @@ export function GameProvider({ children }) {
   const { createGame, fetchGame, joinGame, deleteGame, setPlaylist, setRules } =
     useGameApi();
   const [state, dispatch] = useReducer(reducer, initialState);
+  const { deviceId, pauseTrack, nextTrack } = useContext(SpotifyContext);
 
   const navigate = useNavigate();
 
@@ -86,6 +88,14 @@ export function GameProvider({ children }) {
       });
       navigate("/game/" + updatedGame.room_id);
     },
+    user_ready: async (data) => {
+      console.log("[SOCKET] user_ready:", data);
+      const updatedGame = await fetchGame(data.room_id);
+      dispatch({
+        type: "SET_GAME",
+        payload: updatedGame,
+      });
+    },
     round_started: async (data) => {
       console.log("[SOCKET] round_started: ", data);
       const updatedGame = await fetchGame(data.room_id);
@@ -93,6 +103,7 @@ export function GameProvider({ children }) {
         type: "SET_GAME",
         payload: updatedGame,
       });
+      nextTrack();
     },
     round_summary: async (data) => {
       console.log("[SOCKET] round_summary", data);
@@ -101,6 +112,7 @@ export function GameProvider({ children }) {
         type: "SET_GAME",
         payload: updatedGame,
       });
+      pauseTrack();
     },
   });
 
@@ -192,7 +204,6 @@ export function GameProvider({ children }) {
       dispatch({ type: "SET_ERROR", payload: "No active game found" });
       return;
     }
-    console.log(playlistId);
 
     dispatch({ type: "SET_LOADING", payload: true });
     try {
@@ -228,10 +239,12 @@ export function GameProvider({ children }) {
     });
   }
 
-  async function handleCommenceRound() {
-    console.log("Emmiting commence round event");
-    socket.emit("commence_round", {
+  async function handlePrepareForNextRound() {
+    console.log("Emmiting prepare_for_next_round event");
+    socket.emit("prepare_for_next_round", {
       room_id: state.game.room_id,
+      user_id: user.id,
+      device_id: deviceId,
     });
   }
 
@@ -257,7 +270,7 @@ export function GameProvider({ children }) {
         handleSetPlaylist,
         handleSetRules,
         handleStartGame,
-        handleCommenceRound,
+        handlePrepareForNextRound,
         handleUserGuess,
       }}
     >

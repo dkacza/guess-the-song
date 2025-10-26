@@ -24,6 +24,7 @@ const mainContentStyles = {
 };
 
 function GameView() {
+  // @ts-ignore
   const { user, loading } = useContext(AuthContext);
   // @ts-ignore
   const { game } = useContext(GameContext);
@@ -34,8 +35,6 @@ function GameView() {
   } else {
     panel = <RoundPanel />;
   }
-
-  console.log(game);
 
   return (
     <Box className="app-wrapper" sx={containerStyles}>

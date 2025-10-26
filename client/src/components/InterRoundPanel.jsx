@@ -4,16 +4,22 @@ import { useContext } from "react";
 import GameContext from "../providers/GameProvider";
 import PreviousSong from "./PreviousSong";
 import Leaderboard from "./Leaderboard";
+import AuthContext from "../providers/AuthProvider";
 
 function InterRoundPanel() {
   // @ts-ignore
-  const { game, isAdmin, handleCommenceRound, handleDeleteGame } =
+  const { game, isAdmin, handlePrepareForNextRound, handleDeleteGame } =
     useContext(GameContext);
+  // @ts-ignore
+  const { user } = useContext(AuthContext);
+
   const isLastRound = game?.round == game?.rules.rounds;
 
   async function handleNextRound() {
-    await handleCommenceRound();
+    await handlePrepareForNextRound();
   }
+
+  const disabled = game?.ready_players?.includes(user.id) || false;
 
   return (
     <Box sx={{ display: "flex", width: "100%", p: 4, gap: 12 }}>
@@ -33,13 +39,16 @@ function InterRoundPanel() {
           <></>
         )}
         <Box sx={{ mt: "auto", alignSelf: "flex-end" }}>
-          {isAdmin && !isLastRound ? (
+          {!isLastRound ? (
             <Button
               sx={{ width: 240 }}
               color="success"
               onClick={handleNextRound}
+              disabled={disabled}
             >
-              Next round
+              {disabled
+                ? "Waiting for other players"
+                : "Ready for the next round"}
             </Button>
           ) : (
             <></>

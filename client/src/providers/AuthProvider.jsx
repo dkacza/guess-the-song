@@ -1,14 +1,11 @@
 import { createContext, useEffect, useState } from "react";
 
-const AuthContext = createContext({
-  user: null,
-  loading: true,
-  refreshUser: () => Promise.resolve(),
-});
+const AuthContext = createContext({});
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState(null);
 
   // After the spotify callback is served, the redirection to the FE is made.
   // The sid parameter passed within the URL query can be used to retrieve the specific Spotify Web API token from the BE
@@ -16,6 +13,20 @@ export function AuthProvider({ children }) {
     const params = new URLSearchParams(window.location.search);
     return params.get("sid");
   };
+
+  async function getSpotifyTokenForProcessing() {
+    try {
+      const res = await fetch("https://localhost:5000/api/spotify-token", {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to retrieve Spotify token");
+      const { token } = await res.json();
+      return token;
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
+  }
 
   const getSpotifyToken = async (sid) => {
     const res = await fetch("https://localhost:5000/api/set-api-token", {
@@ -33,10 +44,15 @@ export function AuthProvider({ children }) {
         credentials: "include",
       });
 
-      if (!res.ok) throw new Error("Not authenticated");
+      if (!res.ok) {
+        throw new Error("Not authenticated");
+      }
 
       const data = await res.json();
       setUser(data);
+
+      const tokenInJS = await getSpotifyTokenForProcessing();
+      setToken(tokenInJS);
     } catch {
       setUser(null);
     } finally {
@@ -60,7 +76,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, token, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

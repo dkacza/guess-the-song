@@ -67,3 +67,11 @@ def set_spotify_token():
         samesite="None",
     )
     return response
+
+# Get the Spotify API token in the response body to use it directly in the JS code
+@auth_bp.get("/api/spotify-token")
+def get_spotify_token():
+    token = request.cookies.get("spotify_api_token")
+    if not token:
+        return jsonify({"error": "unauthorized"}), 401
+    return jsonify({"token": token})
