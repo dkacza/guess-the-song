@@ -41,5 +41,6 @@ def create_room(host_profile):
         "status": "waiting",
         "ready_players": [],
         "previous_track": {},
+        "round_results": {}
     }
     return game_rooms[room_id]

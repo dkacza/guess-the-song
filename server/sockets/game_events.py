@@ -4,6 +4,9 @@ from threading import Timer
 from flask import request, jsonify
 from sockets.socket import socketio
 from spotify import add_track_to_queue
+from utils.answer_evaluators import evaluate_artist_points, evaluate_title_points, evaluate_score
+
+import math
 
 
 def register_socket_events(socketio):
@@ -161,24 +164,26 @@ def end_round(room_id):
     room["previous_track"] = room.get("current_track")
 
     correct_track = room["current_track"]
-    round_results = []
+    round_results = {}
 
     for player in room["players"]:
         pid = player["id"]
-        guess = room["guesses"].get(pid)
-        correct = guess and guess["guess"] == correct_track
-        base_points = 100 if correct else 0
-        bonus = 0
-        if correct:
-            time_factor = room["rules"].get("speed_factor", 0.5)
-            bonus = int(((30 - guess["elapsed"]) / 30) * 100 * time_factor)
-        points = base_points + bonus
-        room["scoreboard"][pid] += points
-        round_results.append(
-            {"player": pid, "correct": correct, "points": points}
-        )
+        users_guess = room["guesses"].get(pid)['guess']
+        guessed_title = users_guess["title"]
+        guessed_artist = users_guess["artist"]
+        elapsed_time = room["guesses"].get(pid)["elapsed"]
+        time_factor = room["rules"].get("speed_factor")
+        time_per_round = room["rules"].get("time_per_round")
 
-    room["round"]
+        title_points = evaluate_title_points(guessed_title, correct_track["track"]["name"])
+        artist_points = evaluate_artist_points(guessed_artist, correct_track["track"]["artists"])
+
+        round_points = math.floor(evaluate_score(title_points, artist_points, time_factor, elapsed_time, time_per_round))
+
+        round_results[pid] = {"player": pid, "round_points": round_points, "guess_time": elapsed_time, "title_guess": guessed_title, "artist_guess": guessed_artist, "total_points": room["scoreboard"][pid] + round_points}
+        room["scoreboard"][pid] += round_points
+
+    room["round_results"] = round_results
 
     socketio.emit(
         "round_summary",
