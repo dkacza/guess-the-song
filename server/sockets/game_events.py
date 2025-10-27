@@ -168,16 +168,16 @@ def end_round(room_id):
 
     for player in room["players"]:
         pid = player["id"]
-        
+
         users_guess = {"title": "", "artist": ""}
         if room["guesses"].get(pid):
             users_guess = room["guesses"].get(pid)['guess']
             
         guessed_title = users_guess["title"]
         guessed_artist = users_guess["artist"]
-        elapsed_time = room["guesses"].get(pid)["elapsed"]
-        time_factor = room["rules"].get("speed_factor")
         time_per_round = room["rules"].get("time_per_round")
+        elapsed_time = room.get("guesses", {}).get(pid, {}).get("elapsed", time_per_round)
+        time_factor = room["rules"].get("speed_factor")
 
         title_points = evaluate_title_points(guessed_title, correct_track["track"]["name"])
         artist_points = evaluate_artist_points(guessed_artist, correct_track["track"]["artists"])
