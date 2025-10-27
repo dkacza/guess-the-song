@@ -168,7 +168,11 @@ def end_round(room_id):
 
     for player in room["players"]:
         pid = player["id"]
-        users_guess = room["guesses"].get(pid)['guess']
+        
+        users_guess = {"title": "", "artist": ""}
+        if room["guesses"].get(pid):
+            users_guess = room["guesses"].get(pid)['guess']
+            
         guessed_title = users_guess["title"]
         guessed_artist = users_guess["artist"]
         elapsed_time = room["guesses"].get(pid)["elapsed"]
