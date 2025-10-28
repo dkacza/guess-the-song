@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    container_name: guess-the-song
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    environment:
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET}
+      SERVER_PORT: ${SERVER_PORT}
+      SPOTIFY_REDIRECT_URL: ${SPOTIFY_REDIRECT_URL}
+      FRONTEND_URL: ${FRONTEND_URL}
+      CERT_PATH: ${CERT_PATH}
+      KEY_PATH: ${KEY_PATH}
+    volumes:
+      - ./server/cert.pem:/app/cert.pem:ro
+      - ./server/key.pem:/app/key.pem:ro
