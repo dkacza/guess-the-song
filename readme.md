@@ -13,6 +13,8 @@ cp ./server/localhost+2.pem ./client/localhost+2.pem
 cp ./server/localhost+2-key.pem ./client/localhost+2-key.pem
 ```
 
+### Environment variables
+
 Create the `.env` file in `server/` directory. Paste in the contents of the template below.
 
 ```.env
@@ -25,7 +27,9 @@ CERT_PATH=./localhost+2.pem
 KEY_PATH=./localhost+2-key.pem
 ```
 
-Install dependencies and run the application
+### Installing dependencies and running the application
+
+**Back-end**
 
 ```shell
 cd server
@@ -34,3 +38,13 @@ source .venv/bin/activate
 pip install -r requirements.txt
 python app.py
 ```
+
+**Front-end**
+
+```shell
+cd client
+npm install
+npm run dev
+```
+
+The application will be available under: `https://localhost:5173`
