@@ -23,5 +23,4 @@ dist-ssr
 *.sln
 *.sw?
 
-cert.pem
-key.pem
+*.pem
