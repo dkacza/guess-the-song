@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createContext, useContext, useEffect, useState, useRef } from "react";
 import AuthContext from "./AuthProvider";
 
