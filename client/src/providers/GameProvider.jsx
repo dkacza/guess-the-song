@@ -1,10 +1,19 @@
-import { createContext, useContext, useEffect, useReducer } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useReducer,
+  useRef,
+} from "react";
 import AuthContext from "./AuthProvider";
 import { useSocket } from "../hooks/useSocket";
 import { useGameApi } from "../hooks/useGameApi";
 import { useNavigate } from "react-router-dom";
 import SpotifyContext from "./SpotifyProvider";
 import usePreventReload from "../hooks/usePreventReload";
+import NotificationContext, {
+  CustomNotification,
+} from "./NotificationProvider";
 
 const LOCAL_STORAGE_GAME_ID_KEY = "game_id";
 
@@ -45,14 +54,20 @@ export function GameProvider({ children }) {
     useGameApi();
   const [state, dispatch] = useReducer(reducer, initialState);
   const { deviceId, pauseTrack, nextTrack } = useContext(SpotifyContext);
+  const { addNotification } = useContext(NotificationContext);
+
+  // UseEffect double execution prevention
+  const executedRef = useRef(false);
 
   const navigate = useNavigate();
 
+  // Page reload prevention
   const shouldWarn = !!state.game && state.game.status == "round_active";
   usePreventReload(shouldWarn);
 
   const isAdmin = state.game?.host === user?.id;
 
+  // Socket IO Event handlers
   const socket = useSocket({
     user_joined: async (data) => {
       console.log("[SOCKET] user_joined:", data);
@@ -63,15 +78,19 @@ export function GameProvider({ children }) {
       console.log("[SOCKET] game_deleted");
       localStorage.removeItem(LOCAL_STORAGE_GAME_ID_KEY);
       dispatch({ type: "RESET_GAME" });
+      addNotification(
+        new CustomNotification("info", "Game deleted by the administrator")
+      );
       navigate("/");
     },
     user_left: async (data) => {
-      console.log("[SOCKET] user left");
+      console.log("[SOCKET] user_left");
       const updatedGame = await fetchGame(data.room_id);
+      addNotification(new CustomNotification("info", "User left the game"));
       dispatch({ type: "SET_GAME", payload: updatedGame });
     },
     playlist_set: async (data) => {
-      console.log("[SOCKET] playlist set");
+      console.log("[SOCKET] playlist_set");
       const updatedGame = await fetchGame(data.room_id);
       dispatch({ type: "SET_GAME", payload: updatedGame });
     },
@@ -122,6 +141,9 @@ export function GameProvider({ children }) {
 
   // Current game is persisted in local storage
   useEffect(() => {
+    if (executedRef.current) return;
+    executedRef.current = true;
+
     const storedGameId = localStorage.getItem(LOCAL_STORAGE_GAME_ID_KEY);
     if (storedGameId) {
       fetchGame(storedGameId)
@@ -137,6 +159,9 @@ export function GameProvider({ children }) {
           // If game not present on the backend delete the entry and reset the state
           console.log(
             `Game ${storedGameId} not found on the server - resetting`
+          );
+          addNotification(
+            new CustomNotification("error", "Not able to restore the game")
           );
           localStorage.removeItem(LOCAL_STORAGE_GAME_ID_KEY);
           dispatch({ type: "RESET_GAME" });
@@ -189,6 +214,7 @@ export function GameProvider({ children }) {
     await deleteGame(state.game.room_id);
     localStorage.removeItem(LOCAL_STORAGE_GAME_ID_KEY);
     dispatch({ type: "RESET_GAME" });
+    addNotification(new CustomNotification("success", "Game deleted"));
   }
 
   async function handleLeaveGame() {
@@ -198,6 +224,7 @@ export function GameProvider({ children }) {
     });
     localStorage.removeItem(LOCAL_STORAGE_GAME_ID_KEY);
     dispatch({ type: "RESET_GAME" });
+    addNotification(new CustomNotification("success", "Left the game"));
   }
 
   async function handleSetPlaylist(url) {

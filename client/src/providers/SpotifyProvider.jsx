@@ -4,7 +4,11 @@ import AuthContext from "./AuthProvider";
 
 const SDK_URL = "https://sdk.scdn.co/spotify-player.js";
 
-const SpotifyContext = createContext({});
+const SpotifyContext = createContext({
+  deviceId: null,
+  pauseTrack: async () => {},
+  nextTrack: async () => {},
+});
 
 export function SpotifyProvider({ children }) {
   const [player, setPlayer] = useState(null);

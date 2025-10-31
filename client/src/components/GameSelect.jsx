@@ -21,6 +21,9 @@ function GameSelect() {
   const { handleJoinGame, handleCreateGame, game } = useContext(GameContext);
   const [accessCode, setAccessCode] = useState("");
 
+  const memberOfOngoingGame =
+    game?.status == "ready" || game?.status == "round_active";
+
   return (
     <Box sx={containerStyling}>
       <Typography level="h2" color="primary" mb={8} textAlign="center">
@@ -74,7 +77,24 @@ function GameSelect() {
           </Box>
         </Card>
       </Box>
-      {game?.room_id ? (
+
+      {memberOfOngoingGame ? (
+        <Box sx={{ mt: 4 }}>
+          <Typography>
+            Click the link below to jump back to the game you're part of!
+          </Typography>
+          <Link
+            onClick={() => {
+              navigate("/game/" + game?.room_id);
+            }}
+          >
+            Click to join
+          </Link>
+        </Box>
+      ) : (
+        <></>
+      )}
+      {game?.room_id && !memberOfOngoingGame ? (
         <Box sx={{ mt: 4 }}>
           <Typography>
             There's a room that you have already been part of recently.
