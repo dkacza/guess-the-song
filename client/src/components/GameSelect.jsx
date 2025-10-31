@@ -67,7 +67,6 @@ function GameSelect() {
             <Button
               onClick={async () => {
                 const newGame = await handleJoinGame(accessCode);
-                console.log(newGame);
                 navigate("/room/" + newGame?.room_id);
               }}
               color="success"

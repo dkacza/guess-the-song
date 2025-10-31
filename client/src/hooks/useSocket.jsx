@@ -1,11 +1,14 @@
 import { useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 
+// @ts-ignore
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 export function useSocket(eventHandlers = {}) {
   const socketRef = useRef(null);
 
   if (!socketRef.current) {
-    socketRef.current = io("https://localhost:5000", {
+    socketRef.current = io(`${BACKEND_URL}`, {
       withCredentials: true,
       transports: ["websocket"],
       secure: true,

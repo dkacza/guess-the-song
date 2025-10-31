@@ -3,6 +3,7 @@ import { useContext } from "react";
 import GameContext from "../providers/GameProvider";
 
 function UserGameRules() {
+  // @ts-ignore
   const { game } = useContext(GameContext);
 
   const rules = game.rules;

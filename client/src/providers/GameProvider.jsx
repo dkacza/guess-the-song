@@ -97,6 +97,9 @@ export function GameProvider({ children }) {
     rules_updated: async (data) => {
       console.log("[SOCKET] rules_updated:", data.rules);
       const updatedGame = await fetchGame(data.room_id);
+      addNotification(
+        new CustomNotification("info", "Game rules have been updated")
+      );
       dispatch({
         type: "SET_GAME",
         payload: { ...state.game, rules: updatedGame.rules },

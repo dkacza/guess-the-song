@@ -3,6 +3,7 @@ import { useContext } from "react";
 import GameContext from "../providers/GameProvider";
 
 function PreviousSong() {
+  // @ts-ignore
   const { game } = useContext(GameContext);
   const previousSong = game?.previous_track?.track;
 

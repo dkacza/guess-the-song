@@ -3,10 +3,10 @@ import { useContext } from "react";
 import GameContext from "../providers/GameProvider";
 
 function Leaderboard() {
+  // @ts-ignore
   const { game } = useContext(GameContext);
   const players = game?.players || [];
   const scoreboard = game?.scoreboard || {};
-  const guesses = game?.guesses || {};
 
   const rows = players.map((player) => {
     return {

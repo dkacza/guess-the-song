@@ -1,5 +1,8 @@
+// @ts-ignore
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 export function useGameApi() {
-  const API_BASE = "https://localhost:5000/api/game";
+  const API_BASE = `${BACKEND_URL}/api/game`;
 
   async function apiFetch(endpoint, options = {}) {
     const res = await fetch(`${API_BASE}${endpoint}`, {

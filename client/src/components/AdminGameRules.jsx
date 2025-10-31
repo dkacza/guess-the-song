@@ -3,6 +3,7 @@ import { useContext, useEffect, useState } from "react";
 import GameContext from "../providers/GameProvider";
 
 function AdminGameRules() {
+  // @ts-ignore
   const { game, handleSetRules } = useContext(GameContext);
 
   const maxRounds = game?.playlist?.tracks_total || 10;
@@ -42,6 +43,7 @@ function AdminGameRules() {
           min={1}
           max={maxRounds}
           value={rules.rounds}
+          // @ts-ignore
           onChange={(e, val) => setRules((prev) => ({ ...prev, rounds: val }))}
         />
         <Typography level="body-xs" color="neutral">
@@ -57,6 +59,7 @@ function AdminGameRules() {
           max={60}
           value={rules.timePerRound}
           onChange={(e, val) =>
+            // @ts-ignore
             setRules((prev) => ({ ...prev, timePerRound: val }))
           }
         />
@@ -74,6 +77,7 @@ function AdminGameRules() {
           step={0.1}
           value={rules.speedFactor}
           onChange={(e, val) =>
+            // @ts-ignore
             setRules((prev) => ({ ...prev, speedFactor: val }))
           }
         />

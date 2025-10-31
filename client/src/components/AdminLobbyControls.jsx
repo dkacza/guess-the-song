@@ -1,21 +1,25 @@
 import { Box, Button, Snackbar } from "@mui/joy";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { DeleteOutline, StartOutlined } from "@mui/icons-material";
-import { useContext, useState } from "react";
+import { useContext } from "react";
 import GameContext from "../providers/GameProvider";
 import { useNavigate } from "react-router-dom";
+import NotificationContext, {
+  CustomNotification,
+} from "../providers/NotificationProvider";
 
 function AdminLobbyControls() {
   // @ts-ignore
   const { game, handleDeleteGame, handleStartGame } = useContext(GameContext);
+  const { addNotification } = useContext(NotificationContext);
   const navigate = useNavigate();
-  const [copied, setCopied] = useState(false);
 
   const handleCopyCode = async () => {
     try {
       await navigator.clipboard.writeText(game.access_code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000); // hide popup after 2s
+      addNotification(
+        new CustomNotification("success", "Game code copied to clipboard")
+      );
     } catch (err) {
       console.error("Failed to copy:", err);
     }
@@ -26,7 +30,9 @@ function AdminLobbyControls() {
   };
   const handleGameStart = async () => {
     if (!game?.playlist) {
-      console.log("Select the playlist to start the game");
+      addNotification(
+        new CustomNotification("error", "Select the playlist to start the game")
+      );
       return;
     }
     await handleStartGame();
@@ -70,15 +76,6 @@ function AdminLobbyControls() {
           Start the game
         </Button>
       </Box>
-      <Snackbar
-        open={copied}
-        autoHideDuration={2000}
-        color="success"
-        variant="soft"
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        Game code copied to clipboard!
-      </Snackbar>
     </>
   );
 }

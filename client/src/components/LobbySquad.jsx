@@ -1,4 +1,4 @@
-import { Box, Typography } from "@mui/joy";
+import { Box, Card, Typography } from "@mui/joy";
 import { useContext } from "react";
 import GameContext from "../providers/GameProvider";
 import PlayerCard from "./PlayerCard";
@@ -49,6 +49,17 @@ function LobbySquad() {
           ))}
         </Box>
       </Box>
+      <Card sx={{ mt: 8, p: 4, maxWidth: 400 }}>
+        <Typography color="neutral" level="h3">
+          Before the game starts!
+        </Typography>
+        <Typography>
+          Head into your Spotify application and change the output device to
+          Guess-the-song-player
+          <br></br>
+          Clear the queue from any songs.
+        </Typography>
+      </Card>
       {isAdmin ? <AdminLobbyControls /> : <UserLobbyControls />}
     </Box>
   );

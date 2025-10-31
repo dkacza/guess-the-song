@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useContext, useState } from "react";
 import NotificationContext from "../providers/NotificationProvider";
 import { IconButton, Snackbar } from "@mui/joy";
@@ -7,10 +8,14 @@ function StatefulSnackbar({ notification }) {
   const [open, setOpen] = useState(true);
   const { removeNotification } = useContext(NotificationContext);
 
+  let color = "neutral";
+  if (notification.status == "error") color = "danger";
+  if (notification.status == "success") color = "success";
+
   return (
     <Snackbar
       variant="soft"
-      color={notification.status == "error" ? "danger" : "neutral"}
+      color={color}
       open={open}
       autoHideDuration={5000}
       onClose={(_, reason) => {
@@ -30,7 +35,7 @@ function StatefulSnackbar({ notification }) {
           }}
           size="sm"
           variant="soft"
-          color={notification.status == "error" ? "danger" : "neutral"}
+          color={color}
         >
           <CloseRounded />
         </IconButton>
