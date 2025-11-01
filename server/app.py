@@ -6,7 +6,7 @@ from routes.auth_routes import auth_bp
 from routes.user_routes import user_bp
 from routes.game_routes import game_bp
 from sockets.game_events import register_socket_events
-from config import FRONTEND_URL, SERVER_PORT, CERT_PATH, KEY_PATH
+from config import FRONTEND_URL, SERVER_PORT, CERT_PATH, KEY_PATH, ENVIRONMENT
 from sockets.socket import socketio
 import eventlet
 import os
@@ -39,12 +39,18 @@ def serve_react(path):
     return send_from_directory(static_dir, "index.html")
 
 if __name__ == "__main__":
-    listener = eventlet.listen(("127.0.0.1", SERVER_PORT))
-    ssl_listener = eventlet.wrap_ssl(
-        listener,
-        server_side=True,
-        certfile=CERT_PATH,
-        keyfile=KEY_PATH,
-    )
-    print(f"Server running on port {SERVER_PORT}")
-    eventlet.wsgi.server(ssl_listener, app)
+    listener = eventlet.listen(("0.0.0.0", SERVER_PORT))
+
+    if ENVIRONMENT == 'PROD':
+        eventlet.wsgi.server(listener, app)
+        print(f"HTTP Server running on port {SERVER_PORT}")
+    
+    else:
+        ssl_listener = eventlet.wrap_ssl(
+            listener,
+            server_side=True,
+            certfile=CERT_PATH,
+            keyfile=KEY_PATH,
+        )
+        eventlet.wsgi.server(ssl_listener, app)
+        print(f"HTTPS Server running on port {SERVER_PORT}")

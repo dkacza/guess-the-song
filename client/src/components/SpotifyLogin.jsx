@@ -1,5 +1,6 @@
 import { Box, Button, Card, Typography } from "@mui/joy";
 import { FaSpotify } from "react-icons/fa";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const containerStyling = {
   maxWidth: 320,
@@ -10,7 +11,7 @@ const containerStyling = {
 
 function SpotifyLogin() {
   const handleLogin = async () => {
-    window.location.href = "https://localhost:5000/auth/login";
+    window.location.href = `${BACKEND_URL}/auth/login`;
   };
 
   return (

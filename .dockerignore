@@ -1,0 +1,34 @@
+# Node dependencies
+
+client/node_modules
+
+# Python caches / envs
+
+server/**pycache**
+server/.venv
+\*.pyc
+**pycache**
+
+# Local environment and secrets
+
+_.env
+.env._
+server/.env
+
+# Certificates (unless mounted explicitly)
+
+client/_.pem
+server/_.pem
+
+# Git + editor noise
+
+.git
+.gitignore
+.vscode
+.idea
+
+# Build caches
+
+dist
+build
+frontend_build_cache
