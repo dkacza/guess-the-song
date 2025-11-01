@@ -3,6 +3,7 @@ from config import FRONTEND_URL
 from spotify import get_user_from_token
 from models.game_store import game_rooms, create_room
 from sockets.socket import socketio
+from utils.logger import logger
 
 import requests
 
@@ -12,9 +13,11 @@ game_bp = Blueprint("games", __name__)
 def create_game():
     token = request.cookies.get("spotify_api_token")
     if not token:
+        logger.error(f"[AUTH] No spotify token on game-creation request", extra={"data": request})
         return jsonify({"error": "unauthorized"}), 401
     me_resp = get_user_from_token(token)
     if me_resp.status_code != 200:
+        logger.error(f"[AUTH] User cannot be verified", extra={"data": me_resp.text})
         return jsonify({"error": "cannot verify user"}), 401
     host_info = me_resp.json()
     host_profile = {
@@ -23,7 +26,7 @@ def create_game():
         "email": host_info.get("email"),
     }
     room = create_room(host_profile)
-    print(f"[API] Room {room['room_id']} created by {host_profile['id']}")
+    logger.info(f"[GAME] Room {room['room_id']} created by {host_profile['id']}", extra={"data": room})
     return jsonify(room), 201
 
 
@@ -32,6 +35,7 @@ def delete_game(room_id):
     # Verify request auth
     spotify_api_token = request.cookies.get("spotify_api_token")
     if not spotify_api_token:
+        logger.error(f"[AUTH] No spotify token on game-deletion request", extra={"data": request})
         return jsonify({"error": "unauthorized"}), 401
 
     r = requests.get(
@@ -39,6 +43,7 @@ def delete_game(room_id):
         headers={"Authorization": f"Bearer {spotify_api_token}"},
     )
     if r.status_code != 200:
+        logger.error(f"[AUTH] User cannot be verified", extra={"data": r})
         return jsonify({"error": "cannot verify user"}), 401
 
     user_id = r.json().get("id")
@@ -46,10 +51,12 @@ def delete_game(room_id):
     # Validate room existence
     room = game_rooms.get(room_id)
     if not room:
+        logger.error(f"[GAME] Game to be deleted not found", extra={"data": room_id})
         return jsonify({"error": "room not found"}), 404
 
     # Verify ownership
     if room["host"] != user_id:
+        logger.error(f"[GAME] Forbidden. Only room administrator can delete the room")
         return jsonify({"error": "forbidden – only host may delete room"}), 403
     
     socketio.emit(
@@ -62,7 +69,7 @@ def delete_game(room_id):
     )
 
     del game_rooms[room_id]
-    print(f"Room {room_id} deleted by host {user_id}")
+    logger.info(f"Room {room_id} deleted by host {user_id}")
 
     return jsonify({"status": "deleted", "room_id": room_id}), 200
 
@@ -71,6 +78,7 @@ def delete_game(room_id):
 def get_game(room_id):
     spotify_api_token = request.cookies.get("spotify_api_token")
     if not spotify_api_token:
+        logger.error(f"[AUTH] No spotify token on get-game request", extra={"data": request})
         return jsonify({"error": "unauthorized"}), 401
 
     # Validate Spotify token to be sure cookie isn't stale
@@ -79,6 +87,7 @@ def get_game(room_id):
         headers={"Authorization": f"Bearer {spotify_api_token}"},
     )
     if me_resp.status_code != 200:
+        logger.error(f"[AUTH] User cannot be verified", extra={"data": me_resp.json()})
         return jsonify({"error": "cannot verify user"}), 401
 
     user = me_resp.json()
@@ -92,6 +101,7 @@ def get_game(room_id):
     # --- Verify that user is either host or participant ---
     is_member = any(p["id"] == user_id for p in room["players"])
     if not is_member and user_id != room["host"]:
+        logger.error(f"[GAME] Forbidden. Only room members can access the room's data")
         return jsonify({"error": "forbidden: not part of this room"}), 403
 
     # Return a direct copy (do not mutate global store from jsonify)
@@ -121,6 +131,7 @@ def join_game():
 
     spotify_api_token = request.cookies.get("spotify_api_token")
     if not spotify_api_token:
+        logger.error(f"[AUTH] No spotify token on join-game request", extra={"data": request})
         return jsonify({"error": "unauthorized"}), 401
 
     # Identify user
@@ -129,6 +140,7 @@ def join_game():
         headers={"Authorization": f"Bearer {spotify_api_token}"},
     )
     if me_resp.status_code != 200:
+        logger.error(f"[AUTH] User cannot be verified", extra={"data": me_resp.json()})
         return jsonify({"error": "cannot verify user"}), 401
 
     player_info = me_resp.json()
@@ -141,6 +153,7 @@ def join_game():
     )
 
     if not target_room:
+        logger.error(f"[GAME] Room to join not found")
         return jsonify({"error": "room not found"}), 404
 
     # Check if already in the room
@@ -153,8 +166,8 @@ def join_game():
                 "email": player_info.get("email"),
             }
         )
-        print(f"[API] Player {player_id} joined room {target_room['room_id']}")
         # You can emit an event here if you want live updates:
+        logger.info(f"[GAME] Player {player_id} joined room {target_room['room_id']}", extra={"data": target_room})
         socketio.emit(
             "user_joined",
             {
@@ -175,10 +188,12 @@ def set_playlist():
     playlist_id = data.get("playlist_id")
 
     if not room_id or room_id not in game_rooms:
+        logger.error(f"[GAME] Room not found", extra={"data": request})
         return jsonify({"error": "invalid room"}), 404
     
     spotify_api_token = request.cookies.get("spotify_api_token")
     if not spotify_api_token:
+        logger.error(f"[AUTH] No spotify token on set-playlist request", extra={"data": request})
         return jsonify({"error": "unauthorized"}), 401
     
     playlist_response = requests.get(
@@ -187,6 +202,7 @@ def set_playlist():
     )
 
     if playlist_response.status_code != 200:
+        logger.error(f"[SPOTIFY] Could not fetch the playlist", extra={"data": playlist_response.json()})
         return jsonify({"error": "failed to fetch playlist"}), 400
 
     playlist_data = playlist_response.json()
@@ -216,7 +232,7 @@ def set_playlist():
     room["playlist"] = playlist_info
     room["rules"] = rules
 
-    print(f"Room {room_id} playlist set to {playlist_id}. Playlist details fetched from spotify")
+    logger.info(f"[GAME] Room {room_id} playlist set to {playlist_id}. Playlist details fetched from spotify. Emitting playlist_set event")
 
     socketio.emit("playlist_set", {"user_name": "PLACEHOLDER", "room_id": room_id}, room=room_id)
 
@@ -235,7 +251,8 @@ def set_rules():
     room = game_rooms[room_id]
     room["rules"] = rules
 
-    print(f"[API] Rules updated for room {room_id}: {rules}")
+    logger.info(f"[GAME] Rules updated for room {room_id}", extra={"data": rules})
+
 
     # Notify connected clients to sync
     socketio.emit("rules_updated", {"room_id": room_id, "rules": rules}, room=room_id)

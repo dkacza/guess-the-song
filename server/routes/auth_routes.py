@@ -4,6 +4,8 @@ import uuid
 from spotify import exchange_code_for_token
 from utils.helpers import generate_random_string
 from config import SPOTIFY_CLIENT_ID, SPOTIFY_REDIRECT_URL, FRONTEND_URL
+from utils.logger import logger
+
 
 auth_bp = Blueprint("auth", __name__)
 api_token_session_storage = {}
@@ -24,7 +26,8 @@ def auth_login():
         f"&redirect_uri={SPOTIFY_REDIRECT_URL}"
         f"&state={state}"
     )
-    print("[API] Incoming Spotify login request")
+    logger.info(f"[AUTH] Incoming Spotify login request", extra={"data": request})
+
     return redirect(auth_url)
 
 # Spotify callback endpoint
@@ -33,6 +36,7 @@ def auth_login():
 def auth_callback():
     code = request.args.get("code")
     if not code:
+        logger.error(f"[AUTH] Missing code parameter from Spotify callback", extra={"data": request})
         return jsonify({"error": "Missing code parameter"}), 400
 
     resp = exchange_code_for_token(code)
@@ -46,6 +50,7 @@ def auth_callback():
         api_token_session_storage[session_id] = api_token
         return redirect(f"{FRONTEND_URL}?sid={session_id}")
     else:
+        logger.error(f"[AUTH] Failed to get Spotify token", extra={"data": resp.json()})
         return jsonify({"error": "Failed to get Spotify token", "details": resp.json()}), 400
 
 # Get the Spotify API token based on the temporary session
@@ -56,6 +61,7 @@ def set_spotify_token():
     sid = data.get("session_id")
     token = api_token_session_storage.pop(sid, None)
     if not token:
+        logger.error(f"[AUTH] Invalid session id.", extra={"data": request})
         return {"error": "invalid session"}, 400
 
     response = make_response({"status": "ok"})
@@ -73,5 +79,6 @@ def set_spotify_token():
 def get_spotify_token():
     token = request.cookies.get("spotify_api_token")
     if not token:
+        logger.error(f"[AUTH] Spotify API token not found", extra={"data": request})
         return jsonify({"error": "unauthorized"}), 401
     return jsonify({"token": token})

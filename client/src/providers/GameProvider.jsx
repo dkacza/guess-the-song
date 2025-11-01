@@ -269,7 +269,7 @@ export function GameProvider({ children }) {
   }
 
   async function handleStartGame() {
-    console.log("Emmiting start game event");
+    console.log("Emmiting start_game event");
     socket.emit("start_game", {
       room_id: state.game.room_id,
       user_id: user.id,
@@ -286,7 +286,7 @@ export function GameProvider({ children }) {
   }
 
   async function handleUserGuess(guess, elapsedMs) {
-    console.log("Emmiting user guess event");
+    console.log("Emmiting user_guess event");
     socket.emit("user_guess", {
       room_id: state.game.room_id,
       user_id: user.id,

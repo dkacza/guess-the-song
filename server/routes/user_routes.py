@@ -1,5 +1,7 @@
 from flask import Blueprint, jsonify, request
 import requests
+from utils.logger import logger
+
 
 user_bp = Blueprint("users", __name__)
 
@@ -13,12 +15,13 @@ def me():
         "https://api.spotify.com/v1/me",
         headers={"Authorization": f"Bearer {token}"},
     )
-    print("Spotify /me body:", resp.text)
+    logger.info(f"[AUTH] Spotify /me response", extra={"data": resp.json()})
+
 
     try:
         data = resp.json()
     except ValueError:
-        data = {"raw": resp.text or "(empty response)"}
+        data = {"raw": resp.json() or "(empty response)"}
 
     if resp.status_code == 401:
         return jsonify({

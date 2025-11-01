@@ -1,6 +1,9 @@
 import random
 from utils.helpers import generate_random_string, short_uuid
 
+from utils.logger import logger
+
+
 game_rooms = {}
 
 def initialize_game(room_id):
@@ -22,7 +25,7 @@ def initialize_game(room_id):
         "scoreboard": scoreboard,
         "status": "ready"
     })
-    print(f'[MODEL] Game {room_id} initialized')
+    logger.info(f"[GAME] Game room {room_id} initialized")
     return room
 
 def create_room(host_profile):

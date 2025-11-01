@@ -5,6 +5,7 @@ from flask import request, jsonify
 from sockets.socket import socketio
 from spotify import add_track_to_queue
 from utils.answer_evaluators import evaluate_artist_points, evaluate_title_points, evaluate_score
+from utils.logger import logger
 
 import math
 
@@ -12,25 +13,28 @@ import math
 def register_socket_events(socketio):
     @socketio.on("connect")
     def on_connect():
-        print("[SocketIO] Client connected")
+        logger.info("[SocketIO] Player joined room")
 
     @socketio.on("join_room")
     def on_join(data):
+        logger.info("[SocketIO] registered event join_room", extra={"data": data})
         room_id = data.get("room_id")
         user_name = data.get("user_name")
         if not room_id:
+            logger.error("[GAME] Missing room_id parameter", extra={"data": data})
             emit("error", {"message": "Missing room_id"})
             return
         join_room(room_id)
-        print(f"[SocketIO] {user_name} joined {room_id}")
+        logger.info("[GAME] User joined the game. Emitting user_joined event.", extra={"data": data})
         emit("user_joined", {"user_name": user_name, "room_id": room_id}, room=room_id)
 
     @socketio.on("leave_room")
     def on_leave(data):
+        logger.info("[SocketIO] registered event leave_room", extra={"data": data})
         room_id = data.get("room_id")
         user_name = data.get("user_name")
         leave_room(room_id)
-        print(f"[SocketIO] {user_name} left {room_id}")
+        logger.info(f"[GAME] {user_name} left {room_id}. Emitting user_left event.")
         room = game_rooms.get(room_id)
         if room:
             room["players"] = [p for p in room["players"] if p["email"] != user_name]
@@ -41,25 +45,28 @@ def register_socket_events(socketio):
 
     @socketio.on("start_game")
     def start_game(data):
+        logger.info("[SocketIO] registered event leave_room", extra={"data": data})
         room_id = data.get("room_id")
         user_id = data.get("user_id")
 
         room = game_rooms.get(room_id)
         if not room or room["host"] != user_id:
+            logger.error(f"[GAME] Only host can start the game")
             emit("error", {"msg": "Only host can start the game"})
             return
 
         initialize_game(room_id)
         emit("game_ready", {"room_id": room_id, "room": room["rules"]}, room=room_id)
-        print(f"[GAME] Game ready in room {room_id}")
+        logger.info(f"[GAME] Emitting game_ready event")
 
 
     @socketio.on("prepare_for_next_round")
     def prepare_for_next_round(data):
+        logger.info("[SocketIO] registered event prepare_for_next_round", extra={"data": data})
         # 1. Grab the spotify api token
         spotify_token = request.cookies.get("spotify_api_token")
-        print("Cookies:", request.cookies)
         if not spotify_token:
+            logger.error(f"[AUTH] Spotify token not present in the prepare_for_next_round event")
             emit("error", {"error": "unauthorized"})
             return
         
@@ -87,12 +94,12 @@ def register_socket_events(socketio):
             {"room_id": room_id, "user_id": user_id},
             room=room_id,
         )
-        print(f"[ROUND] Player {user_id} ready for the next round. Song added to the queue")
+        logger.info(f"[GAME] Player {user_id} ready for the next round. Song ${track_uri} added to the queue")
 
         # 4. Validate if all users are ready, if so trigger the commence round event
         all_player_ids = {p["id"] for p in room["players"]}
         if set(room.get("ready_players")) >= all_player_ids:
-            print(f"[ROUND] All {len(all_player_ids)} players ready. Commencing round")
+            logger.info(f"[GAME] All {len(all_player_ids)} players ready. Commencing round")
             room["ready_players"].clear()
             commence_round(data)
 
@@ -106,6 +113,7 @@ def register_socket_events(socketio):
 
         round = room["round"]
         if round >= len(room["subplaylist"]):
+            logger.info(f"[GAME] Game Finnished. Emmitting game_finished event.")
             socketio.emit("game_finished", {"scoreboard": room["scoreboard"]}, room=room_id)
             room["status"] = "finished"
             return
@@ -115,7 +123,8 @@ def register_socket_events(socketio):
         room["guesses"] = {}
         room["status"] = "round_active"
 
-        print(f"[ROUND] Starting round {round + 1}/{len(room['subplaylist'])}")
+        logger.info(f"[GAME] Starting round {round + 1}/{len(room['subplaylist'])}")
+
         socketio.emit(
             "round_started",
             {"room_id": room_id, "round": round + 1, "track": current_track},
@@ -128,7 +137,7 @@ def register_socket_events(socketio):
 
     @socketio.on("user_guess")
     def user_guess(data):
-        print('[ROUND] User guess registered')
+        logger.info("[SocketIO] registered event user_guess", extra={"data": data})
         room_id = data.get("room_id")
         user_id = data.get("user_id")
         guess = data.get("guess")
@@ -150,6 +159,7 @@ def delayed_end_round(room_id, delay):
     room = game_rooms.get(room_id)
     if room.get("invalidated_timeout") == True:
         return
+    logger.info("[GAME] Round ended with timeout")
     end_round(room_id)
 
 
@@ -158,7 +168,7 @@ def end_round(room_id):
     if not room or room.get("status") != "round_active":
         return
 
-    print(f"[ROUND] Ending round for {room_id}")
+    logger.info(f"[GAME] Ending round for {room_id}")
     room["status"] = "round_summary"
     room["ready_players"] = []
     room["previous_track"] = room.get("current_track")

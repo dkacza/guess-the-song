@@ -10,8 +10,16 @@ from config import FRONTEND_URL, SERVER_PORT, CERT_PATH, KEY_PATH, ENVIRONMENT
 from sockets.socket import socketio
 import eventlet
 import os
+from utils.logger import logger 
 
 app = Flask(__name__)
+
+app.logger.handlers = []
+app.logger.propagate = False
+app.logger.addHandler(logger.handlers[0])
+app.logger.setLevel(logger.level)
+
+logger.setLevel("DEBUG")
 
 socketio.init_app(app, cors_allowed_origins=FRONTEND_URL, async_mode="eventlet")
 
@@ -28,6 +36,7 @@ CORS(
     supports_credentials=True,
     origins=[FRONTEND_URL],
 )
+
 
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
