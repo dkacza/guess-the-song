@@ -11,7 +11,7 @@ redis_instance = redis.Redis.from_url(REDIS_URL, decode_responses=True)
 
 def create_room(host_profile):
     room_id = short_uuid()
-    access_code = generate_random_string(16).join(''),
+    access_code = generate_random_string(16),
     new_room = {
         "room_id": room_id,
         "host": host_profile["id"],
