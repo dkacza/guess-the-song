@@ -1,11 +1,12 @@
 from flask_socketio import emit, join_room, leave_room
-from models.game_store import game_rooms, initialize_game
 from threading import Timer
 from flask import request, jsonify
 from sockets.socket import socketio
 from spotify import add_track_to_queue
 from utils.answer_evaluators import evaluate_artist_points, evaluate_title_points, evaluate_score
 from utils.logger import logger
+from models.game_store import create_room, all_rooms, get_room, delete_room, save_room, initialize_room
+
 
 import math
 
@@ -35,11 +36,11 @@ def register_socket_events(socketio):
         user_name = data.get("user_name")
         leave_room(room_id)
         logger.info(f"[GAME] {user_name} left {room_id}. Emitting user_left event.")
-        room = game_rooms.get(room_id)
+        room = get_room(room_id)
         if room:
             room["players"] = [p for p in room["players"] if p["email"] != user_name]
             if not room["players"]:
-                del game_rooms[room_id]
+                delete_room[room_id]
         emit("user_left", {"user_name": user_name, "room_id": room_id}, room=room_id)
 
 
@@ -49,13 +50,13 @@ def register_socket_events(socketio):
         room_id = data.get("room_id")
         user_id = data.get("user_id")
 
-        room = game_rooms.get(room_id)
+        room = get_room(room_id)
         if not room or room["host"] != user_id:
             logger.error(f"[GAME] Only host can start the game")
             emit("error", {"msg": "Only host can start the game"})
             return
 
-        initialize_game(room_id)
+        initialize_room(room_id)
         emit("game_ready", {"room_id": room_id, "room": room["rules"]}, room=room_id)
         logger.info(f"[GAME] Emitting game_ready event")
 
@@ -72,7 +73,7 @@ def register_socket_events(socketio):
         
         # 2. Determine the next song
         room_id = data.get("room_id")
-        room = game_rooms.get(room_id)
+        room = get_room(room_id)
         if not room:
             return
         
@@ -88,6 +89,7 @@ def register_socket_events(socketio):
         # 3. Mark the user as ready
         user_id = data.get("user_id")
         room.get("ready_players").append(user_id)
+        save_room(room)
 
         socketio.emit(
             "user_ready",
@@ -101,13 +103,14 @@ def register_socket_events(socketio):
         if set(room.get("ready_players")) >= all_player_ids:
             logger.info(f"[GAME] All {len(all_player_ids)} players ready. Commencing round")
             room["ready_players"].clear()
+            save_room(room)
             commence_round(data)
 
 
 
     def commence_round(data):
         room_id = data.get("room_id")
-        room = game_rooms.get(room_id)
+        room = get_room(room_id)
         if not room:
             return
 
@@ -122,7 +125,8 @@ def register_socket_events(socketio):
         room["current_track"] = current_track
         room["guesses"] = {}
         room["status"] = "round_active"
-
+        
+        save_room(room)
         logger.info(f"[GAME] Starting round {round + 1}/{len(room['subplaylist'])}")
 
         socketio.emit(
@@ -143,20 +147,22 @@ def register_socket_events(socketio):
         guess = data.get("guess")
         elapsed = data.get("elapsed_time", 0)
 
-        room = game_rooms.get(room_id)
+        room = get_room(room_id)
         if not room or room["status"] != "round_active":
             return
 
         room["guesses"][user_id] = {"guess": guess, "elapsed": elapsed}
+        save_room(room)
 
         # Check if all have guessed
         if len(room["guesses"]) == len(room["players"]):
             room["invalidated_timeout"] = True
+            save_room(room)
             end_round(room_id)
 
 def delayed_end_round(room_id, delay):
     socketio.sleep(delay)
-    room = game_rooms.get(room_id)
+    room = get_room(room_id)
     if room.get("invalidated_timeout") == True:
         return
     logger.info("[GAME] Round ended with timeout")
@@ -164,7 +170,7 @@ def delayed_end_round(room_id, delay):
 
 
 def end_round(room_id):
-    room = game_rooms.get(room_id)
+    room = get_room(room_id)
     if not room or room.get("status") != "round_active":
         return
 
@@ -198,17 +204,20 @@ def end_round(room_id):
         room["scoreboard"][pid] += round_points
 
     room["round_results"] = round_results
+    room["round"] += 1
+    room["status"] = "ready"
+
+    save_room(room)
+
 
     socketio.emit(
         "round_summary",
         {
             "room_id": room_id,
-            "round": room["round"] + 1,
+            "round": room["round"],
             "results": round_results,
             "scoreboard": room["scoreboard"],
         },
         room=room_id,
     )
 
-    room["round"] += 1
-    room["status"] = "ready"

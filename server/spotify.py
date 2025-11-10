@@ -36,7 +36,7 @@ def add_track_to_queue(token: str, track_uri: str, device_id: str | None = None)
             "Authorization": f"Bearer {token}"
         }, params=params)
 
-        if res.status_code == 204:
+        if res.status_code == 204 or res.status_code == 200:
             logger.info("[SPOTIFY] Track added to queue")
             return True
         else:

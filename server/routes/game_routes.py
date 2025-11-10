@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from config import FRONTEND_URL
 from spotify import get_user_from_token
-from models.game_store import game_rooms, create_room
+from models.game_store import create_room, all_rooms, get_room, delete_room, save_room
 from sockets.socket import socketio
 from utils.logger import logger
 
@@ -49,7 +49,7 @@ def delete_game(room_id):
     user_id = r.json().get("id")
 
     # Validate room existence
-    room = game_rooms.get(room_id)
+    room = get_room(room_id)
     if not room:
         logger.error(f"[GAME] Game to be deleted not found", extra={"data": room_id})
         return jsonify({"error": "room not found"}), 404
@@ -68,7 +68,7 @@ def delete_game(room_id):
             room=room_id,
     )
 
-    del game_rooms[room_id]
+    delete_room(room_id)
     logger.info(f"Room {room_id} deleted by host {user_id}")
 
     return jsonify({"status": "deleted", "room_id": room_id}), 200
@@ -94,7 +94,7 @@ def get_game(room_id):
     user_id = user.get("id")
 
     # --- Lookup room ---
-    room = game_rooms.get(room_id)
+    room = get_room(room_id)
     if not room:
         return jsonify({"error": "room not found"}), 404
 
@@ -148,7 +148,7 @@ def join_game():
 
     # Find room by access code
     target_room = next(
-        (room for room in game_rooms.values() if room["access_code"] == access_code),
+        (room for room in all_rooms() if room["access_code"][0] == access_code),
         None,
     )
 
@@ -166,6 +166,7 @@ def join_game():
                 "email": player_info.get("email"),
             }
         )
+        save_room(target_room)
         # You can emit an event here if you want live updates:
         logger.info(f"[GAME] Player {player_id} joined room {target_room['room_id']}", extra={"data": target_room})
         socketio.emit(
@@ -176,7 +177,6 @@ def join_game():
             },
             room=target_room["room_id"],
         )
-
     return jsonify(target_room), 200
 
 
@@ -187,7 +187,7 @@ def set_playlist():
     room_id = data.get("room_id")
     playlist_id = data.get("playlist_id")
 
-    if not room_id or room_id not in game_rooms:
+    if not room_id or not any(room["room_id"] == room_id for room in all_rooms()):
         logger.error(f"[GAME] Room not found", extra={"data": request})
         return jsonify({"error": "invalid room"}), 404
     
@@ -228,12 +228,12 @@ def set_playlist():
         "speed_factor": 0.5
     }
 
-    room = game_rooms[room_id]
+    room = get_room(room_id)
     room["playlist"] = playlist_info
     room["rules"] = rules
+    save_room(room)
 
     logger.info(f"[GAME] Room {room_id} playlist set to {playlist_id}. Playlist details fetched from spotify. Emitting playlist_set event")
-
     socketio.emit("playlist_set", {"user_name": "PLACEHOLDER", "room_id": room_id}, room=room_id)
 
     return jsonify(room)
@@ -245,11 +245,12 @@ def set_rules():
     room_id = data.get("room_id")
     rules = data.get("rules")
 
-    if not room_id or room_id not in game_rooms:
+    if not room_id or not any(room["room_id"] == room_id for room in all_rooms()):
         return jsonify({"error": "invalid room"}), 404
 
-    room = game_rooms[room_id]
+    room = get_room(room_id)
     room["rules"] = rules
+    save_room(room)
 
     logger.info(f"[GAME] Rules updated for room {room_id}", extra={"data": rules})
 

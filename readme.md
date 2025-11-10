@@ -25,9 +25,17 @@ SPOTIFY_REDIRECT_URL=https://127.0.0.1:5000/auth/callback
 FRONTEND_URL=https://localhost:5137
 CERT_PATH=./localhost+2.pem
 KEY_PATH=./localhost+2-key.pem
+REDIS_URL=redis://localhost:6379/0
+ROOM_TTL=3600
 ```
 
 ### Installing dependencies and running the application
+
+**Redis**
+
+```shell
+docker run -d --name redis -p 6379:6379 redis:latest
+```
 
 **Back-end**
 
