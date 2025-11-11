@@ -11,8 +11,7 @@ server/.venv
 
 # Local environment and secrets
 
-_.env
-.env._
+client/.env
 server/.env
 
 # Certificates (unless mounted explicitly)

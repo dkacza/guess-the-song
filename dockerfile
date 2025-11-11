@@ -22,6 +22,9 @@ RUN npm run build
 FROM python:3.11-slim AS backend
 WORKDIR /app
 
+COPY config/prod.env .env
+
+
 RUN apt-get update && apt-get install -y build-essential && rm -rf /var/lib/apt/lists/*
 
 COPY server/requirements.txt .
