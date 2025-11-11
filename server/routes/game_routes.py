@@ -115,6 +115,7 @@ def get_game(room_id):
         "access_code": room["access_code"],
         "round": room.get("round"),
         "scoreboard": room.get("scoreboard"),
+        "round_results": room.get("round_results"),
         "guesses": room.get("guesses"),
         "current_track": room.get("current_track"),
         "ready_players": room.get("ready_players"),

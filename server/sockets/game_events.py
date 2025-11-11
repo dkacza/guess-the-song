@@ -200,7 +200,17 @@ def end_round(room_id):
 
         round_points = math.floor(evaluate_score(title_points, artist_points, time_factor, elapsed_time, time_per_round))
 
-        round_results[pid] = {"player": pid, "round_points": round_points, "guess_time": elapsed_time, "title_guess": guessed_title, "artist_guess": guessed_artist, "total_points": room["scoreboard"][pid] + round_points}
+        round_results[pid] = {
+            "player": pid,
+              "round_points": round_points, 
+              "guess_time": elapsed_time, 
+              "title_guess": guessed_title, 
+              "title_points": title_points,
+              "artist_guess": guessed_artist,
+              "artist_points": artist_points,
+              "total_points": room["scoreboard"][pid] + round_points
+        }
+        
         room["scoreboard"][pid] += round_points
 
     room["round_results"] = round_results
