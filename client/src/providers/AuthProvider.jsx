@@ -82,7 +82,8 @@ export function AuthProvider({ children }) {
   const refreshUser = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${BACKEND_URL}/api/me`, {
+      const res = await fetch(`${BACKEND_URL}/api/user/create`, { //replaced `${BACKEND_URL}/api/me` with `${BACKEND_URL}/api/user/create`
+        method: "POST", 
         credentials: "include",
       });
       if (!res.ok) throw new Error("Unauthenticated");
@@ -132,10 +133,10 @@ export function AuthProvider({ children }) {
         setLoading(false);
       }
     })();
-  }, [addNotification, exchangeSessionForToken, refreshUser]);
+  }, [addNotification, exchangeSessionForToken, refreshUser]); 
 
   return (
-    <AuthContext.Provider value={{ user, loading, token, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, token, refreshUser}}>
       {children}
     </AuthContext.Provider>
   );

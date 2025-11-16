@@ -4,7 +4,9 @@ import SpotifyLogin from "../components/SpotifyLogin";
 import AuthContext from "../providers/AuthProvider";
 import { useContext } from "react";
 import GameSelect from "../components/GameSelect";
+import AdminComponent from "../components/AdminComponent";
 import { PulseLoader } from "react-spinners";
+
 
 const containerStyles = {
   width: "100vw",
@@ -30,7 +32,9 @@ function HomeView() {
       <Box sx={mainContentStyles}>
         {loading ? (
           <PulseLoader color="#1976d2" size={12} margin={6} />
-        ) : user ? (
+        ) : user && user.admin == "True" ? (
+          <AdminComponent></AdminComponent>
+        ) : user && user.admin == "False" ? (
           <GameSelect></GameSelect>
         ) : (
           <SpotifyLogin />
