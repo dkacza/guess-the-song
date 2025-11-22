@@ -72,3 +72,17 @@ def initialize_room(room_id):
 
     save_room(room)
     logger.info(f"[GAME] Game room {room_id} initialized")
+
+def fetch_all_rooms():
+    rooms = []
+    keys = redis_instance.keys("game:*")
+    for key in keys:
+        raw = redis_instance.get(key)
+        if raw:
+            try:
+                room = json.loads(raw)
+                rooms.append(room)
+            except json.JSONDecodeError:
+                logger.error(f"[GAME] Failed to decode room data for key {key}")
+
+    return rooms

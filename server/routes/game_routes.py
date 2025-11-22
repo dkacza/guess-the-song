@@ -1,7 +1,8 @@
 from flask import Blueprint, jsonify, request
 from config import FRONTEND_URL
 from spotify import get_user_from_token
-from models.game_store import create_room, all_rooms, get_room, delete_room, save_room
+from models.game_store import create_room, all_rooms, get_room, delete_room, save_room, fetch_all_rooms
+from models.user_store import check_if_user_is_admin
 from sockets.socket import socketio
 from utils.logger import logger
 
@@ -55,10 +56,11 @@ def delete_game(room_id):
         return jsonify({"error": "room not found"}), 404
 
     # Verify ownership
-    if room["host"] != user_id:
+    if room["host"] != user_id and not check_if_user_is_admin(user_id):
         logger.error(f"[GAME] Forbidden. Only room administrator can delete the room")
         return jsonify({"error": "forbidden – only host may delete room"}), 403
-    
+
+
     socketio.emit(
         "game_deleted",
         {
@@ -261,3 +263,18 @@ def set_rules():
 
     return jsonify(room)
 
+@game_bp.get("/api/game/rooms")
+def get_all_rooms():
+    token = request.cookies.get("spotify_api_token")
+    if not token:
+        logger.error("[AUTH] No spotify token on list-rooms request")
+        return jsonify({"error": "unauthorized"}), 401
+
+    me_resp = get_user_from_token(token)
+    if me_resp.status_code != 200:
+        logger.error("[AUTH] User cannot be verified", extra={"data": me_resp.text})
+        return jsonify({"error": "cannot verify user"}), 401
+
+    rooms = fetch_all_rooms()
+
+    return jsonify({"rooms": rooms}), 200
