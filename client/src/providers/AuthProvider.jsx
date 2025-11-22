@@ -82,8 +82,7 @@ export function AuthProvider({ children }) {
   const refreshUser = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${BACKEND_URL}/api/user/create`, { //replaced `${BACKEND_URL}/api/me` with `${BACKEND_URL}/api/user/create`
-        method: "POST", 
+      const res = await fetch(`${BACKEND_URL}/api/me`, { 
         credentials: "include",
       });
       if (!res.ok) throw new Error("Unauthenticated");

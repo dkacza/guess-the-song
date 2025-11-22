@@ -38,5 +38,9 @@ def find_user_by_id(user_id):
                v.decode() if isinstance(v, bytes) else v
                for k, v in data.items()}
     return decoded
-    
+
+def check_if_user_is_admin(user_id):
+    if user_id in ADMIN_IDS:
+        return True
+    return False
 

@@ -3,8 +3,7 @@ import requests
 
 from spotify import get_user_from_token
 from utils.logger import logger
-from models.user_store import create_user, find_user_by_id
-
+from models.user_store import create_user, find_user_by_id, check_if_user_is_admin
 
 user_bp = Blueprint("users", __name__)
 
@@ -23,6 +22,10 @@ def me():
 
     try:
         data = resp.json()
+        if check_if_user_is_admin(data["id"]):
+            data["is_admin"] = "True"
+        else:
+            data["is_admin"] = "False"
     except ValueError:
         data = {"raw": resp.json() or "(empty response)"}
 

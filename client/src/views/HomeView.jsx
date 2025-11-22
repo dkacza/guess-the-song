@@ -32,9 +32,9 @@ function HomeView() {
       <Box sx={mainContentStyles}>
         {loading ? (
           <PulseLoader color="#1976d2" size={12} margin={6} />
-        ) : user && user.admin == "True" ? (
+        ) : user && user.is_admin == "True" ? (
           <AdminComponent></AdminComponent>
-        ) : user && user.admin == "False" ? (
+        ) : user && user.is_admin == "False" ? (
           <GameSelect></GameSelect>
         ) : (
           <SpotifyLogin />
