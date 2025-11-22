@@ -1,8 +1,8 @@
-import { Box, Typography } from "@mui/joy";
+import { Box, Typography, Button } from "@mui/joy";
 import Navbar from "../components/Navbar";
 import SpotifyLogin from "../components/SpotifyLogin";
 import AuthContext from "../providers/AuthProvider";
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import GameSelect from "../components/GameSelect";
 import AdminComponent from "../components/AdminComponent";
 import { PulseLoader } from "react-spinners";
@@ -25,6 +25,7 @@ const mainContentStyles = {
 
 function HomeView() {
   const { user, loading } = useContext(AuthContext);
+  const [showAdmin, setShowAdmin] = useState(false);
 
   return (
     <Box className="app-wrapper" sx={containerStyles}>
@@ -33,7 +34,12 @@ function HomeView() {
         {loading ? (
           <PulseLoader color="#1976d2" size={12} margin={6} />
         ) : user && user.is_admin == "True" ? (
-          <AdminComponent></AdminComponent>
+          <> 
+          <Button color="primary" onClick={() => setShowAdmin((prev) => !prev)} sx={{ position: "absolute", width: "fit-content", left:"50%", transform: "translateX(-50%)", top:"12%", zIndex: 10 }} >
+                Switch to {showAdmin ? "User View" : "Admin View"}
+          </Button>
+          {showAdmin ? <AdminComponent /> : <GameSelect />}
+          </>
         ) : user && user.is_admin == "False" ? (
           <GameSelect></GameSelect>
         ) : (
