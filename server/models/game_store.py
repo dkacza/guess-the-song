@@ -75,7 +75,7 @@ def initialize_room(room_id):
 
 def fetch_all_rooms():
     rooms = []
-    keys = redis_instance.keys("game:*")  # get all room keys
+    keys = redis_instance.keys("game:*")
     for key in keys:
         raw = redis_instance.get(key)
         if raw:

@@ -265,7 +265,6 @@ def set_rules():
 
 @game_bp.get("/api/game/rooms")
 def get_all_rooms():
-    logger.info(f"GET ALL ROOMS")
     token = request.cookies.get("spotify_api_token")
     if not token:
         logger.error("[AUTH] No spotify token on list-rooms request")
@@ -276,7 +275,6 @@ def get_all_rooms():
         logger.error("[AUTH] User cannot be verified", extra={"data": me_resp.text})
         return jsonify({"error": "cannot verify user"}), 401
 
-    # Call helper function (like create_room / remove_room pattern)
     rooms = fetch_all_rooms()
 
     return jsonify({"rooms": rooms}), 200
