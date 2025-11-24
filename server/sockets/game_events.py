@@ -71,23 +71,27 @@ def register_socket_events(socketio):
             emit("error", {"error": "unauthorized"})
             return
         
-        # 2. Determine the next song
+        # 2. Determine the room id
         room_id = data.get("room_id")
         room = get_room(room_id)
         if not room:
             return
         
+        # Determine the next song
         current_round = room["round"]        
         current_track = room["subplaylist"][current_round]
         track_uri = current_track.get("track").get("uri")
         device_id = data.get("device_id")
 
         # 2. Call the queue endpoint of the API
+        # Safeguard for multiple add to queue request
+        user_id = data.get("user_id")
+        if user_id in room.get("ready_players"):
+            return
+        
         add_track_to_queue(spotify_token, track_uri, device_id)
 
-        
         # 3. Mark the user as ready
-        user_id = data.get("user_id")
         room.get("ready_players").append(user_id)
         save_room(room)
 
