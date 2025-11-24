@@ -48,7 +48,7 @@ def auth_callback():
         api_token = token_info.get("access_token")
         session_id = str(uuid.uuid4())
         api_token_session_storage[session_id] = api_token
-        return redirect(f"{FRONTEND_URL}?sid={session_id}")
+        return redirect(f"{FRONTEND_URL}/?sid={session_id}")
     else:
         logger.error(f"[AUTH] Failed to get Spotify token", extra={"data": resp.json()})
         return jsonify({"error": "Failed to get Spotify token", "details": resp.json()}), 400

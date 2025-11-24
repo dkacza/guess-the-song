@@ -14,3 +14,6 @@ KEY_PATH = os.getenv("KEY_PATH")
 ENVIRONMENT = os.getenv("ENVIRONMENT")
 REDIS_URL = os.getenv("REDIS_URL")
 ROOM_TTL = os.getenv("ROOM_TTL")
+
+_admin_ids_str = os.getenv("ADMIN_IDS")
+ADMIN_IDS = [str(x) for x in _admin_ids_str.split(",") if x]
