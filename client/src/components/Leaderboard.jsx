@@ -25,7 +25,7 @@ function Leaderboard() {
   const sorted = [...rows].sort((a, b) => b.totalScore - a.totalScore);
 
   return (
-    <Box sx={{ width: "100%", minWidth: 920, mx: "auto", mt: 4 }}>
+    <Box sx={{ width: "100%", mx: "auto", mt: 4 }}>
       <Typography level="h3" color="primary" mb={2}>
         Leaderboard
       </Typography>

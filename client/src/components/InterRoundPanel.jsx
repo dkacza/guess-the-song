@@ -19,15 +19,23 @@ function InterRoundPanel() {
     await handlePrepareForNextRound();
   }
 
+  console.log(isAdmin);
+
   const disabled = game?.ready_players?.includes(user.id) || false;
 
   return (
     <Box sx={{ display: "flex", width: "100%", p: 4, gap: 12 }}>
-      <Box>
+      <Box sx={{ maxWidth: "60%", flexGrow: 1 }}>
         <RoundHeading />
         <Leaderboard />
       </Box>
-      <Box sx={{ minWidth: 640, display: "flex", flexDirection: "column" }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          flexGrow: 1,
+        }}
+      >
         {game?.round >= 1 ? (
           <Box sx={{ mt: 10 }}>
             <Typography level="h3" color="primary" mb={2}>
@@ -54,11 +62,7 @@ function InterRoundPanel() {
             <></>
           )}
           {isAdmin && isLastRound ? (
-            <Button
-              sx={{ width: 240 }}
-              color="success"
-              onClick={handleDeleteGame}
-            >
+            <Button color="success" onClick={handleDeleteGame}>
               Finish the game
             </Button>
           ) : (
