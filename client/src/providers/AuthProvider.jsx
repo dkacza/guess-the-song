@@ -15,15 +15,19 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 const AuthContext = createContext({
   user: {},
   loading: true,
+  showAdmin: false,
   token: null,
   refreshUser: async () => {},
   handleLogout: async () => {},
+  // eslint-disable-next-line no-unused-vars
+  setShowAdmin: (prev) => {},
 });
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(null);
+  const [showAdmin, setShowAdmin] = useState(false);
 
   // UseEffect double execution prevention
   const executedRef = useRef(false);
@@ -156,7 +160,7 @@ export function AuthProvider({ children }) {
   }, [addNotification, exchangeSessionForToken, refreshUser]); 
 
   return (
-    <AuthContext.Provider value={{ user, loading, token, refreshUser, handleLogout }}>
+    <AuthContext.Provider value={{ user, loading, token, refreshUser, handleLogout, showAdmin, setShowAdmin }}>
       {children}
     </AuthContext.Provider>
   );

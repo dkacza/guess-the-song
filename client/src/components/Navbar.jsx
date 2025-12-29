@@ -1,4 +1,4 @@
-import { Box, IconButton, Sheet, Typography } from "@mui/joy";
+import { Box, Button, IconButton, Sheet, Typography } from "@mui/joy";
 import { useContext } from "react";
 import AuthContext from "../providers/AuthProvider";
 import { FaSpotify } from "react-icons/fa";
@@ -17,7 +17,7 @@ const containerStyling = {
 };
 
 function Navbar() {
-  const { user, handleLogout } = useContext(AuthContext);
+  const { user, showAdmin, handleLogout, setShowAdmin } = useContext(AuthContext);
   const navigate = useNavigate();
 
   return (
@@ -31,6 +31,11 @@ function Navbar() {
       >
         Guess-the-song!
       </Typography>
+      <Box>
+        <Button color="primary" onClick={() => setShowAdmin((prev) => !prev)} variant="outlined" >
+                Switch to {showAdmin ? "User View" : "Admin View"}
+          </Button>
+      </Box>
       {user ? (
         <Box mr={5} sx={{ display: "flex", alignItems: "center", gap: 4 }}>
           <FaSpotify size={36} color="#1DB954" />
