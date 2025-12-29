@@ -85,9 +85,15 @@ export function AuthProvider({ children }) {
       const res = await fetch(`${BACKEND_URL}/api/me`, {
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Unauthenticated");
-
       const data = await res.json();
+      
+      if (!res.ok) {
+        if (data.error == "NO_TOKEN_PRESENT") {
+          return;
+        }
+        throw new Error("Unauthenticated");
+      }
+
       setUser(data);
 
       const jsToken = await fetchSpotifyToken();
