@@ -11,7 +11,7 @@ user_bp = Blueprint("users", __name__)
 def me():
     token = request.cookies.get("spotify_api_token")
     if not token:
-        return jsonify({"error": "unauthorized"}), 401
+        return jsonify({"error": "NO_TOKEN_PRESENT"}), 401
 
     resp = requests.get(
         "https://api.spotify.com/v1/me",
