@@ -83,7 +83,7 @@ export function AuthProvider({ children }) {
   const refreshUser = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${BACKEND_URL}/api/me`, {
+      const res = await fetch(`${BACKEND_URL}/api/me`, { 
         credentials: "include",
       });
       const data = await res.json();
@@ -153,7 +153,7 @@ export function AuthProvider({ children }) {
         setLoading(false);
       }
     })();
-  }, [addNotification, exchangeSessionForToken, refreshUser]);
+  }, [addNotification, exchangeSessionForToken, refreshUser]); 
 
   return (
     <AuthContext.Provider value={{ user, loading, token, refreshUser, handleLogout }}>
