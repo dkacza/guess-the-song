@@ -64,30 +64,34 @@ def register_socket_events(socketio):
     @socketio.on("prepare_for_next_round")
     def prepare_for_next_round(data):
         logger.info("[SocketIO] registered event prepare_for_next_round", extra={"data": data})
-        # 1. Grab the spotify api token
+        # Grab the spotify api token
         spotify_token = request.cookies.get("spotify_api_token")
         if not spotify_token:
             logger.error(f"[AUTH] Spotify token not present in the prepare_for_next_round event")
             emit("error", {"error": "unauthorized"})
             return
         
-        # 2. Determine the next song
+        # Determine the room id
         room_id = data.get("room_id")
         room = get_room(room_id)
         if not room:
             return
         
+        # Determine if user is already marked as ready
+        user_id = data.get("user_id")
+        if user_id in room.get("ready_players"):
+            return
+
+        # Determine the next song
         current_round = room["round"]        
         current_track = room["subplaylist"][current_round]
         track_uri = current_track.get("track").get("uri")
         device_id = data.get("device_id")
 
-        # 2. Call the queue endpoint of the API
+        # Call the queue endpoint of the API
         add_track_to_queue(spotify_token, track_uri, device_id)
 
-        
-        # 3. Mark the user as ready
-        user_id = data.get("user_id")
+        # Mark the user as ready
         room.get("ready_players").append(user_id)
         save_room(room)
 
@@ -98,11 +102,10 @@ def register_socket_events(socketio):
         )
         logger.info(f"[GAME] Player {user_id} ready for the next round. Song ${track_uri} added to the queue")
 
-        # 4. Validate if all users are ready, if so trigger the commence round event
+        # Validate if all users are ready, if so trigger the commence round event
         all_player_ids = {p["id"] for p in room["players"]}
         if set(room.get("ready_players")) >= all_player_ids:
             logger.info(f"[GAME] All {len(all_player_ids)} players ready. Commencing round")
-            room["ready_players"].clear()
             save_room(room)
             commence_round(data)
 
@@ -127,6 +130,7 @@ def register_socket_events(socketio):
         room["status"] = "round_active"
         
         save_room(room)
+        room["ready_players"].clear()
         logger.info(f"[GAME] Starting round {round + 1}/{len(room['subplaylist'])}")
 
         socketio.emit(

@@ -82,3 +82,17 @@ def get_spotify_token():
         logger.error(f"[AUTH] Spotify API token not found", extra={"data": request})
         return jsonify({"error": "unauthorized"}), 401
     return jsonify({"token": token})
+
+@auth_bp.get("/api/logout")
+def logout():
+    response = make_response({"status": "ok"})
+    response.set_cookie(
+        "spotify_api_token",
+        "",
+        httponly=True,
+        secure=True,
+        samesite="None",
+        max_age=0,
+        expires=0,
+    )
+    return response

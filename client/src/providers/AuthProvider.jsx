@@ -17,6 +17,7 @@ const AuthContext = createContext({
   loading: true,
   token: null,
   refreshUser: async () => {},
+  handleLogout: async () => {},
 });
 
 export function AuthProvider({ children }) {
@@ -85,9 +86,15 @@ export function AuthProvider({ children }) {
       const res = await fetch(`${BACKEND_URL}/api/me`, {
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Unauthenticated");
-
       const data = await res.json();
+      
+      if (!res.ok) {
+        if (data.error == "NO_TOKEN_PRESENT") {
+          return;
+        }
+        throw new Error("Unauthenticated");
+      }
+
       setUser(data);
 
       const jsToken = await fetchSpotifyToken();
@@ -100,6 +107,20 @@ export function AuthProvider({ children }) {
       setLoading(false);
     }
   }, [addNotification, fetchSpotifyToken]);
+
+  const handleLogout = async () => {
+    setLoading(true);
+    try {
+      await fetch(`${BACKEND_URL}/api/logout`, {credentials: "include"})
+      setUser(null);
+      setToken(null);
+      addNotification(new CustomNotification("info", "User logged out"));
+    } catch {
+      addNotification(new CustomNotification("error", "Not able to log out"));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (executedRef.current) return;
@@ -135,7 +156,7 @@ export function AuthProvider({ children }) {
   }, [addNotification, exchangeSessionForToken, refreshUser]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, token, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, token, refreshUser, handleLogout }}>
       {children}
     </AuthContext.Provider>
   );

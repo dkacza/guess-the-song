@@ -1,8 +1,9 @@
-import { Box, Sheet, Typography } from "@mui/joy";
+import { Box, IconButton, Sheet, Typography } from "@mui/joy";
 import { useContext } from "react";
 import AuthContext from "../providers/AuthProvider";
 import { FaSpotify } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import { LogoutRounded } from "@mui/icons-material";
 
 const containerStyling = {
   borderBottom: "1px solid",
@@ -16,7 +17,7 @@ const containerStyling = {
 };
 
 function Navbar() {
-  const { user } = useContext(AuthContext);
+  const { user, handleLogout } = useContext(AuthContext);
   const navigate = useNavigate();
 
   return (
@@ -39,6 +40,9 @@ function Navbar() {
             </Typography>
             <Typography level="body-sm">{user?.email}</Typography>
           </Box>
+          <IconButton color="danger" onClick={handleLogout}>
+            <LogoutRounded></LogoutRounded>
+          </IconButton>
         </Box>
       ) : (
         <></>
